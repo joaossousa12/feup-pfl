@@ -1,3 +1,5 @@
+consult('game.pl').
+
 main_menu :-
     write('Main Menu\n'),
     write('1. Play\n'),
@@ -21,7 +23,10 @@ validate_choice(_) :-
     read_option(Choice).
 
 process_choice(1) :-
-    display_play_menu.
+    init_game('h', 'h', GameState),
+	display_game(GameState),
+	game_loop(GameState).
+    %display_play_menu.
 
 process_choice(2) :-
     % Need to maybe do another sub-menu after entering help menu to send back to main menu or quit the app.

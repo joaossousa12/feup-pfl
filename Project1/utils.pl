@@ -6,3 +6,6 @@ computer_difficulty(comp) :-
     write('1. Easy\n'),
     write('2. Medium\n'),
     write('3. Difficult\n'), */
+
+clear_console:- 
+    write('\33\[2J').
