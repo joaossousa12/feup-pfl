@@ -23,7 +23,7 @@ validate_choice(_) :-
     read_option(Choice).
 
 process_choice(1) :-
-    init_game('h', 'h', GameState),
+    init_game('PVP', GameState),
 	display_game(GameState),
 	game_loop(GameState).
     %display_play_menu.
