@@ -4,4 +4,4 @@
 :- consult('board.pl').
 
 start :-
-    main_menu.
+    play.

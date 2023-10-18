@@ -17,11 +17,8 @@ get_line(Res, Acc):-
 
 read_name(Player) :- % both outputs showing at the same time
     format('~a, choose the name you want to be referred as: ', [Player]),
-    get_line(Name, []),
+    read(Name), % later add names with spaces
     asserta(player_name(Player,Name)).
-
-
-
 
 clear_console:- 
     write('\33\[2J').
