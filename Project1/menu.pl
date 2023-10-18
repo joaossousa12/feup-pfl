@@ -1,5 +1,6 @@
 :- consult('game.pl').
 :- consult('utils.pl').
+:- consult('board.pl').
 %:- consult('configurations.pl').
 
 main_menu :-
@@ -54,8 +55,10 @@ read_game_option(PlayChoice) :-
 
 process_play_choice(1) :-
     write('Player vs Player game ...\n'),
-    player_name(player1, 'João'), player_name(player2, 'Pedro'). % testing
-    % read_name(player1), read_name(player2).
+    % asserta(player_name(player1, 'João')), 
+    % asserta(player_name(player2, 'Pedro')). % testing
+    read_name(player1), 
+    read_name(player2).
 
 process_play_choice(2) :-
     write('Player vs Computer game ...\n').
@@ -72,9 +75,9 @@ display_help_menu :-
     write('Murus Galicius is a game where players strategically conquer territories to defeat opponents.').
 
 greetings :-
-    write('------------------------------\n'),
-    write('      Welcome to Murus Galicius     \n'),
-    write('------------------------------\n\n').
+    write('--------------------------------------\n'),
+    write('      Welcome to Murus Galicius\n'),
+    write('--------------------------------------\n\n').
 
 % initialize gamestate with board, first player is player1 and 0 totalmoves
 gamestate([Board, player1, 0]) :-
@@ -83,11 +86,11 @@ gamestate([Board, player1, 0]) :-
     initial_board(Board), print_board(Board).
 
 
-game_cycle(GameState):-
+% game_cycle(GameState):- .
 
 
 
 play :-
     gamestate(GameState), !,
-    game_cycle(GameState),
+    % game_cycle(GameState),
     clear_data.
