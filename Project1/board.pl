@@ -59,5 +59,15 @@ print_bottom_letters :-
     write('      A    B    C    D    E    F    G    H'),
     nl.
 
+position(Board, Col-Row, Piece) :-
+    nth1(Row, Board, Line),
+    nth1(Col, Line, Piece).
+
+move_piece(Board, ColFinal-RowFinal, Piece, NewBoard) :-
+    RowIndex is Row - 1, ColIndex is Col - 1,
+    nth0(RowIndex, Board, Line),
+    replace(ColIndex, Piece, Line, NewLine),
+    replace(RowIndex, NewLine, Board, NewBoard).
+
 % para testar:
 % ?- initial_board(Board), print_board(Board).

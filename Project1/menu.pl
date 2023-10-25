@@ -3,6 +3,9 @@
 :- consult('board.pl').
 %:- consult('configurations.pl').
 
+other_player(player1, player2).
+other_player(player2, player1).
+
 main_menu :-
     write('Main Menu\n'),
     write('1. Play\n'),
