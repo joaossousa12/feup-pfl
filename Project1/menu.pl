@@ -3,6 +3,9 @@
 :- consult('board.pl').
 %:- consult('configurations.pl').
 
+other_player(player1, player2).
+other_player(player2, player1).
+
 main_menu :-
     write('Main Menu\n'),
     write('1. Play\n'),
@@ -85,8 +88,16 @@ gamestate([Board, player1, 0]) :-
     main_menu,
     initial_board(Board), print_board(Board).
 
+move(GameState, ColInitial-RowInitial-ColFinal-RowFinal, NewGameState) :-
+    [Board, Player, TotalMoves] = GameState,
+    position(Board, ColInitial-RowInitial, Piece), % get the piece at the initial position
+    move_piece(Board, ColFinal-RowFinal, Piece, NewBoard),
+    other_player(Player, NewPlayer),
+    NewTotalMoves is TotalMoves + 1,
+    NewGameState = [NewBoard, NewPlayer, NewTotalMoves].
 
-% game_cycle(GameState):- .
+% TODO checker for legal moves vai estar no game_cycle quando
+% se for a pedir o move 
 
 
 
