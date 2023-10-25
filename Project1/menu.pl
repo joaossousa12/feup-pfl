@@ -76,7 +76,7 @@ display_help_menu :-
 
 greetings :-
     write('--------------------------------------\n'),
-    write('      Welcome to Murus Galicius\n'),
+    write('      Welcome to Murus Galicius       \n'),
     write('--------------------------------------\n\n').
 
 % initialize gamestate with board, first player is player1 and 0 totalmoves
@@ -85,12 +85,18 @@ gamestate([Board, player1, 0]) :-
     main_menu,
     initial_board(Board), print_board(Board).
 
-
-% game_cycle(GameState):- .
-
-
+% game_cycle(GameState):-
+    % for game over
+game_cycle(GameState):-
+    first_element(GameState, Board),
+    second_element(GameState, Player),
+    format('~w\'s turn\n', [Player]),
+    write('insert move pls\n'),   % for testing, later use
+    read(ABC),                    % real functions instead
+    print_board(Board),
+    game_cycle(NewGameState).
 
 play :-
-    gamestate(GameState), !,
-    % game_cycle(GameState),
+    gamestate(GameState),
+    game_cycle(GameState),
     clear_data.

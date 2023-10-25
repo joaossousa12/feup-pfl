@@ -26,3 +26,6 @@ clear_console:-
 clear_data :-
     % to add more
     retractall(player_name(_,_)).
+
+first_element([X | _], X).
+second_element([_, X | _], X).
