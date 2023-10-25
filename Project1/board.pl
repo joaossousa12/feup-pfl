@@ -63,7 +63,11 @@ position(Board, Col-Row, Piece) :-
     nth1(Row, Board, Line),
     nth1(Col, Line, Piece).
 
-move_piece(Board, ColFinal-RowFinal, Piece, NewBoard) :-
+replace(Index, Element, List, Result) :-
+    nth0(Index, List, _, R),
+    nth0(Index, Result, Element, R).
+    
+move_piece(Board, Col-Row, Piece, NewBoard) :-
     RowIndex is Row - 1, ColIndex is Col - 1,
     nth0(RowIndex, Board, Line),
     replace(ColIndex, Piece, Line, NewLine),

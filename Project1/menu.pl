@@ -96,12 +96,27 @@ move(GameState, ColInitial-RowInitial-ColFinal-RowFinal, NewGameState) :-
     NewTotalMoves is TotalMoves + 1,
     NewGameState = [NewBoard, NewPlayer, NewTotalMoves].
 
+% game_cycle(GameState):-
+% for game over
+game_cycle(GameState):-
+    % get move
+    move(GameState, 1-1-1-3, NewGameState), 
+
+    % get new board and print
+    first_element(NewGameState, Board),
+    print_board(Board),
+    
+    % get player name and print move prompt
+    second_element(GameState, Player),
+    format('~w\'s turn\n', [Player]),
+
+    % recursive call
+    game_cycle(NewGameState).
+
 % TODO checker for legal moves vai estar no game_cycle quando
 % se for a pedir o move 
 
-
-
 play :-
     gamestate(GameState), !,
-    % game_cycle(GameState),
+    game_cycle(GameState),
     clear_data.
