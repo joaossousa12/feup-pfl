@@ -29,3 +29,24 @@ clear_data :-
 
 first_element([X | _], X).
 second_element([_, X | _], X).
+
+read_row(Row, Str) :-
+    format('~w', Str),
+    read(DispRow),
+    Row is 8 - DispRow.
+
+read_col(Col, Str) :-
+    % pequeno problema ter de ser lowercase para funcionar, se não, dá erro
+    % com get_char o programa passa à frente por alguma razão
+    format('~w', Str),
+    read(DispCol),
+    char_code(DispCol, AsciiCode),
+    Col is AsciiCode - 96.
+
+get_move(Board, ColI-RowI-ColF-RowF) :-
+    read_row(RowI, 'Origin row: '),
+    read_col(ColI, 'Origin column (lowercase): '),
+    read_row(RowF, 'Destiny row: '),
+    read_col(ColF, 'Destiny column (lowercase): ').
+
+    % TODO: check if move is valid

@@ -6,7 +6,14 @@
 other_player(player1, player2).
 other_player(player2, player1).
 
+greetings :-
+    write('--------------------------------------\n'),
+    write('      Welcome to Murus Gallicus       \n'),
+    write('--------------------------------------\n\n').
+
 main_menu :-
+    clear_console,
+    greetings,
     write('Main Menu\n'),
     write('1. Play\n'),
     write('2. Help\n'),
@@ -57,11 +64,11 @@ read_game_option(PlayChoice) :-
     validate_choice(PlayChoice).
 
 process_play_choice(1) :-
-    write('Player vs Player game ...\n'),
+    write('Player vs Player game ...\n').
     % asserta(player_name(player1, 'João')), 
     % asserta(player_name(player2, 'Pedro')). % testing
-    read_name(player1), 
-    read_name(player2).
+    % read_name(player1), 
+    % read_name(player2).
 
 process_play_choice(2) :-
     write('Player vs Computer game ...\n').
@@ -75,23 +82,25 @@ process_play_choice(_) :-
 
 display_help_menu :-
     % Just to visualize the help menu for now
-    write('Murus Galicius is a game where players strategically conquer territories to defeat opponents.').
+    write('Murus Gallicus is a game where players strategically conquer territories to defeat opponents.').
 
-greetings :-
-    write('--------------------------------------\n'),
-    write('      Welcome to Murus Galicius\n'),
-    write('--------------------------------------\n\n').
+title :-
+    write('   -----------------------------------------\n'),
+    write('                 Murus Gallicus             \n'),
+    write('   -----------------------------------------\n').
 
 % initialize gamestate with board, first player is player1 and 0 totalmoves
 gamestate([Board, player1, 0]) :-
-    greetings,
     main_menu,
+    clear_console,
+    title,
     initial_board(Board), print_board(Board).
 
-move(GameState, ColInitial-RowInitial-ColFinal-RowFinal, NewGameState) :-
+move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
+    % aqui já se assume que a move é válida, certo?
     [Board, Player, TotalMoves] = GameState,
-    position(Board, ColInitial-RowInitial, Piece), % get the piece at the initial position
-    move_piece(Board, ColFinal-RowFinal, Piece, NewBoard),
+    position(Board, ColI-RowI, Piece), % get the piece at the initial position
+    move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard),
     other_player(Player, NewPlayer),
     NewTotalMoves is TotalMoves + 1,
     NewGameState = [NewBoard, NewPlayer, NewTotalMoves].
@@ -99,18 +108,14 @@ move(GameState, ColInitial-RowInitial-ColFinal-RowFinal, NewGameState) :-
 % game_cycle(GameState):-
 % for game over
 game_cycle(GameState):-
-    % get move
-    move(GameState, 1-1-1-3, NewGameState), 
-
-    % get new board and print
-    first_element(NewGameState, Board),
-    print_board(Board),
-    
-    % get player name and print move prompt
     second_element(GameState, Player),
     format('~w\'s turn\n', [Player]),
-
-    % recursive call
+    get_move(Board, Col1-Row1-Col2-Row2),
+    move(GameState, Col1-Row1-Col2-Row2, NewGameState),
+    first_element(NewGameState, Board),
+    clear_console,
+    title,
+    print_board(Board),
     game_cycle(NewGameState).
 
 % TODO checker for legal moves vai estar no game_cycle quando

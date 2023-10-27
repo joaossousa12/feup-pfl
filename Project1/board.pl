@@ -66,12 +66,19 @@ position(Board, Col-Row, Piece) :-
 replace(Index, Element, List, Result) :-
     nth0(Index, List, _, R),
     nth0(Index, Result, Element, R).
-    
-move_piece(Board, Col-Row, Piece, NewBoard) :-
+
+remove_piece(Board, Col-Row, NewBoard) :-
     RowIndex is Row - 1, ColIndex is Col - 1,
     nth0(RowIndex, Board, Line),
-    replace(ColIndex, Piece, Line, NewLine),
+    replace(ColIndex, '  ', Line, NewLine),
     replace(RowIndex, NewLine, Board, NewBoard).
+    
+move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewNewBoard) :-
+    remove_piece(Board, ColI-RowI, NewBoard),
+    RowIndex is RowF - 1, ColIndex is ColF - 1,
+    nth0(RowIndex, NewBoard, Line),
+    replace(ColIndex, Piece, Line, NewLine),
+    replace(RowIndex, NewLine, NewBoard, NewNewBoard).
 
 % para testar:
 % ?- initial_board(Board), print_board(Board).
