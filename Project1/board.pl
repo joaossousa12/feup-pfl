@@ -79,6 +79,3 @@ move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewNewBoard) :-
     nth0(RowIndex, NewBoard, Line),
     replace(ColIndex, Piece, Line, NewLine),
     replace(RowIndex, NewLine, NewBoard, NewNewBoard).
-
-% para testar:
-% ?- initial_board(Board), print_board(Board).

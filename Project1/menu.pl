@@ -111,12 +111,34 @@ game_cycle(GameState):-
     second_element(GameState, Player),
     format('~w\'s turn\n', [Player]),
     get_move(Board, Col1-Row1-Col2-Row2),
-    move(GameState, Col1-Row1-Col2-Row2, NewGameState),
-    first_element(NewGameState, Board),
-    clear_console,
-    title,
-    print_board(Board),
-    game_cycle(NewGameState).
+    % Validate the move
+    (validate(GameState, Col1-Row1, Col2-Row2) ->
+        move(GameState, Col1-Row1-Col2-Row2, NewGameState),
+        first_element(NewGameState, NewBoard),
+        clear_console,
+        title,
+        print_board(NewBoard),
+        game_cycle(NewGameState)
+    ; % Invalid move
+        write('Invalid move. Please try again.\n'),
+        game_cycle(GameState)
+    ).
+
+insideBoard(Board, Col-Row):- 
+    length(Board, Size),
+    between(1, Size, Row),
+    between(1, Size, Col).
+
+pieceAt(Board, Col-Row) :-
+    position(Board, Col-Row, Piece),
+    Piece \= '  '.
+
+validate(GameState, ColI-RowI, ColF-RowF) :-
+    [Board, Player, _] = GameState,
+    insideBoard(Board, ColI-RowI),
+    insideBoard(Board, ColF-RowF),
+    \+pieceAt(Board, ColF-RowF).
+    
 
 % TODO checker for legal moves vai estar no game_cycle quando
 % se for a pedir o move 
