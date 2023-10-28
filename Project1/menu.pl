@@ -6,6 +6,14 @@
 other_player(player1, player2).
 other_player(player2, player1).
 
+piece_info(numeral, player1).
+piece_info(roman, player2).
+
+symbol(numeral, ' 2').
+symbol(numeral, ' 1').
+symbol(roman, ' I').
+symbol(roman, 'II').
+
 greetings :-
     write('--------------------------------------\n'),
     write('      Welcome to Murus Gallicus       \n'),
@@ -129,15 +137,24 @@ insideBoard(Board, Col-Row):-
     between(1, Size, Row),
     between(1, Size, Col).
 
-pieceAt(Board, Col-Row) :-
-    position(Board, Col-Row, Piece),
+pieceAt(Piece) :-
     Piece \= '  '.
+
+pieceBelongsToPlayer(Piece, Player) :-
+    symbol(Type, Piece),
+    piece_info(Type, Player).
+
+isTower(Piece) :- 
+    (Piece = ' 2' ; Piece = 'II').
 
 validate(GameState, ColI-RowI, ColF-RowF) :-
     [Board, Player, _] = GameState,
+    position(Board, ColI-RowI, Piece),
     insideBoard(Board, ColI-RowI),
     insideBoard(Board, ColF-RowF),
-    \+pieceAt(Board, ColF-RowF).
+    pieceBelongsToPlayer(Piece, Player),
+    isTower(Piece),
+    \+pieceAt(Piece).
     
 
 % TODO checker for legal moves vai estar no game_cycle quando
