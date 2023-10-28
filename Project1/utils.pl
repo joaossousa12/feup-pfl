@@ -42,7 +42,6 @@ read_col(Col, Str) :-
     read(DispCol),
     char_code(DispCol, AsciiCode),
     Col is AsciiCode - 96.
-
 get_move(Board, ColI-RowI-ColF-RowF) :-
     read_row(RowI, 'Origin row: '),
     read_col(ColI, 'Origin column (lowercase): '),

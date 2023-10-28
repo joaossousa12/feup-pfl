@@ -72,10 +72,31 @@ remove_piece(Board, Col-Row, NewBoard) :-
     nth0(RowIndex, Board, Line),
     replace(ColIndex, '  ', Line, NewLine),
     replace(RowIndex, NewLine, Board, NewBoard).
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % straight down, place at row-1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff > 0, Xdiff = 0,
+    ColRes is ColF, % could be ColI as well since they're the exact same
+    RowRes is RowF - 1.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :- 
+    % need to make the same for every other case
+    ColRes is ColF,
+    RowRes is RowF. % for now so it works
     
-move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewNewBoard) :-
+move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard3) :-
     remove_piece(Board, ColI-RowI, NewBoard),
     RowIndex is RowF - 1, ColIndex is ColF - 1,
     nth0(RowIndex, NewBoard, Line),
     replace(ColIndex, Piece, Line, NewLine),
-    replace(RowIndex, NewLine, NewBoard, NewNewBoard).
+    replace(RowIndex, NewLine, NewBoard, NewBoard2),
+
+    behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes),
+    RowIndex2 is RowRes - 1, ColIndex2 is ColRes - 1,
+    nth0(RowIndex2, NewBoard2, Line2),
+    replace(ColIndex2, Piece, Line2, NewLine2),
+    replace(RowIndex2, NewLine2, NewBoard2, NewBoard3).
+
+    % deduct 1 or add 1 based on the piece/lack thereof at the destination location
+    % probably make a "place" predicate that checks this

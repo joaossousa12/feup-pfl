@@ -123,7 +123,7 @@ game_cycle(GameState):-
     (validate(GameState, Col1-Row1, Col2-Row2) ->
         move(GameState, Col1-Row1-Col2-Row2, NewGameState),
         first_element(NewGameState, NewBoard),
-        clear_console,
+        % clear_console,
         title,
         print_board(NewBoard),
         game_cycle(NewGameState)
@@ -132,12 +132,12 @@ game_cycle(GameState):-
         game_cycle(GameState)
     ).
 
-insideBoard(Board, Col-Row):- 
-    length(Board, Size),
-    between(1, Size, Row),
-    between(1, Size, Col).
+insideBoard(Board, Col-Row) :- 
+    % length(Board, Size), aqui n podia ser assim pq a board n é quadrada ent quando movias para a column h ñ dava
+    between(1, 7, Row),
+    between(1, 8, Col).
 
-pieceAt(Piece) :-
+isPiece(Piece) :-
     Piece \= '  '.
 
 pieceBelongsToPlayer(Piece, Player) :-
@@ -147,14 +147,25 @@ pieceBelongsToPlayer(Piece, Player) :-
 isTower(Piece) :- 
     (Piece = ' 2' ; Piece = 'II').
 
+targetAvailable(Board, Col-Row, Piece) :-
+    RealCol is Col - 1,
+    RealRow is Row - 1,
+    % nth0(RealRow, Board, NthRow),
+    % nth0(RealCol, NthRow, NthCol),
+    position(Board, Col-Row, TargetContent),
+    TargetContent = '  '. % pode também ser ' 1' ou ' I', dependendo do jogador
+                          % importante também, nesse caso, verificar a peça anterior
+
 validate(GameState, ColI-RowI, ColF-RowF) :-
     [Board, Player, _] = GameState,
     position(Board, ColI-RowI, Piece),
+    isPiece(Piece),
+    isTower(Piece),
     insideBoard(Board, ColI-RowI),
     insideBoard(Board, ColF-RowF),
     pieceBelongsToPlayer(Piece, Player),
-    isTower(Piece),
-    \+pieceAt(Piece).
+    targetAvailable(Board, ColF-RowF, Piece).
+    % need to also use behind_pos from board.pl to find out if the other target spot is available
     
 
 % TODO checker for legal moves vai estar no game_cycle quando
