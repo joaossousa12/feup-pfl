@@ -123,7 +123,7 @@ game_cycle(GameState):-
     (validate(GameState, Col1-Row1, Col2-Row2) ->
         move(GameState, Col1-Row1-Col2-Row2, NewGameState),
         first_element(NewGameState, NewBoard),
-        clear_console,
+        % clear_console,
         title,
         print_board(NewBoard),
         game_cycle(NewGameState)
@@ -137,8 +137,9 @@ insideBoard(Board, Col-Row) :-
     between(1, 7, Row),
     between(1, 8, Col).
 
-isPiece(Piece) :-
-    Piece \= '  '.
+isEmpty(Board, Col-Row) :- 
+    position(Board, Col-Row, Slot),
+    Slot = '  '.
 
 pieceBelongsToPlayer(Piece, Player) :-
     symbol(Type, Piece),
@@ -147,29 +148,46 @@ pieceBelongsToPlayer(Piece, Player) :-
 isTower(Piece) :- 
     (Piece = ' 2' ; Piece = 'II').
 
-targetAvailable(Board, Col-Row, Piece) :-
-    RealCol is Col - 1,
-    RealRow is Row - 1,
-    % nth0(RealRow, Board, NthRow),
-    % nth0(RealCol, NthRow, NthCol),
+targetAvailable(Board, Col-Row, Player) :-
+    % se for espaço vazio, não há problema
     position(Board, Col-Row, TargetContent),
-    TargetContent = '  ' ; TargetContent = ' 1' ; TargetContent = ' I'.
-    % pode também ser ' 1' ou ' I', dependendo do jogador
-    % importante também, nesse caso, verificar a peça anterior
+    TargetContent = '  '.
+
+targetAvailable(Board, Col-Row, Player) :-
+    % se não for um espaço vazio, tem de ser uma peça unitária que pertence ao jogador
+    position(Board, Col-Row, TargetContent),
+    ( TargetContent = ' I' ; TargetContent = ' 1' ),
+    pieceBelongsToPlayer(TargetContent, Player).
 
 validate(GameState, ColI-RowI, ColF-RowF) :-
+    % get board and player from gamestate
     [Board, Player, _] = GameState,
+    
+    % get final and behind-piece position
     position(Board, ColI-RowI, Piece),
-    isPiece(Piece),
+    behind_pos(ColI-RowI-ColF-RowF, ColBeh-RowBeh), !, % por alguma razão, sem
+    % este cut, quando falha a target available para o behind-position, ele volta
+    % a calcular a posição, mas mal, porque fica igual à posição final e o resultado
+    % fica errado. 💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀
+
+    % check if the selected slot contains a piece that is a tower
     isTower(Piece),
+
+    % check if initial, behind and final slots are whithin the board's range
     insideBoard(Board, ColI-RowI),
+    insideBoard(Board, ColBeh-RowBeh),
     insideBoard(Board, ColF-RowF),
+
+    % check if the selected starting piece belongs to the player    
     pieceBelongsToPlayer(Piece, Player),
-    targetAvailable(Board, ColF-RowF, Piece).
-    % aqui falta verificar se:
-    %   - a peça de destino tb pertence ao jogador
-    %   - a peça que fica atrás está disponível ou é do jogador e não é torre
-    %   - a movimentação avança, exatamente, duas casas
+
+    % check if the destinations belong to the player or are empty
+    targetAvailable(Board, ColBeh-RowBeh, Player),
+    targetAvailable(Board, ColF-RowF, Player).
+
+    % Aqui falta verificar se a peça final avança, exatamente, duas casas
+    % e também se as moves são exatamente na diagonal (mas já tou farto disto)
+
 
 % TODO checker for legal moves vai estar no game_cycle quando
 % se for a pedir o move 
