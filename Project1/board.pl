@@ -73,29 +73,104 @@ remove_piece(Board, Col-Row, NewBoard) :-
     replace(ColIndex, '  ', Line, NewLine),
     replace(RowIndex, NewLine, Board, NewBoard).
 
+
+
+
 behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
-    % straight down, place at row-1
+    % straight down, place at rowf-1
     Ydiff is RowF - RowI, Xdiff is ColF - ColI,
     Ydiff > 0, Xdiff = 0,
     ColRes is ColF, % could be ColI as well since they're the exact same
     RowRes is RowF - 1.
 
-behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :- 
-    % need to make the same for every other case
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % straight up, place at rowf+1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff < 0, Xdiff = 0,
     ColRes is ColF,
-    RowRes is RowF. % for now so it works
+    RowRes is RowF + 1.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % straight right, place at colf-1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff = 0, Xdiff > 0,
+    ColRes is ColF - 1,
+    RowRes is RowF.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % straight left, place at colf+1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff = 0, Xdiff < 0,
+    ColRes is ColF + 1,
+    RowRes is RowF.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % diagonally down and right, place at colf-1 and rowf-1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff > 0, Xdiff > 0,
+    ColRes is ColF - 1,
+    RowRes is RowF - 1.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % diagonally down and left, place at colf+1 and rowf-1 
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff > 0, Xdiff < 0,
+    ColRes is ColF + 1,
+    RowRes is RowF - 1.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % diagonally up and right, place at colf-1 and rowf+1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff < 0, Xdiff > 0,
+    ColRes is ColF - 1,
+    RowRes is RowF + 1.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
+    % diagonally up and left, place at colf+1 and rowf+1
+    Ydiff is RowF - RowI, Xdiff is ColF - ColI,
+    Ydiff < 0, Xdiff < 0,
+    ColRes is ColF + 1,
+    RowRes is RowF + 1.
+
+behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :- 
+    % idk other cases where the previous doesn't work?
+    ColRes is ColF,
+    RowRes is RowF. 
+    % probably useless lol
+
+resulting_piece(Board, Piece, Col-Row, Res) :-
+    position(Board, Col-Row, Aux),
+    Aux = '  ', Piece = ' 2',
+    Res = ' 1'.
+
+resulting_piece(Board, Piece, Col-Row, Res) :-
+    position(Board, Col-Row, Aux),
+    Aux = ' 1', Piece = ' 2',
+    Res = ' 2'.
+
+resulting_piece(Board, Piece, Col-Row, Res) :-
+    position(Board, Col-Row, Aux),
+    Aux = '  ', Piece = 'II',
+    Res = ' I'.
+
+resulting_piece(Board, Piece, Col-Row, Res) :-
+    position(Board, Col-Row, Aux),
+    Aux = ' I', Piece = 'II',
+    Res = 'II'.
     
 move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard3) :-
     remove_piece(Board, ColI-RowI, NewBoard),
     RowIndex is RowF - 1, ColIndex is ColF - 1,
     nth0(RowIndex, NewBoard, Line),
-    replace(ColIndex, Piece, Line, NewLine),
+    resulting_piece(NewBoard, Piece, ColF-RowF, ResPiece),
+    replace(ColIndex, ResPiece, Line, NewLine),
     replace(RowIndex, NewLine, NewBoard, NewBoard2),
 
     behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes),
+    resulting_piece(NewBoard2, Piece, ColRes-RowRes, ResPiece2),
     RowIndex2 is RowRes - 1, ColIndex2 is ColRes - 1,
     nth0(RowIndex2, NewBoard2, Line2),
-    replace(ColIndex2, Piece, Line2, NewLine2),
+    replace(ColIndex2, ResPiece2, Line2, NewLine2),
     replace(RowIndex2, NewLine2, NewBoard2, NewBoard3).
 
     % deduct 1 or add 1 based on the piece/lack thereof at the destination location

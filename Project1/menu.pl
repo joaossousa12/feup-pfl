@@ -123,7 +123,7 @@ game_cycle(GameState):-
     (validate(GameState, Col1-Row1, Col2-Row2) ->
         move(GameState, Col1-Row1-Col2-Row2, NewGameState),
         first_element(NewGameState, NewBoard),
-        % clear_console,
+        clear_console,
         title,
         print_board(NewBoard),
         game_cycle(NewGameState)
@@ -153,8 +153,9 @@ targetAvailable(Board, Col-Row, Piece) :-
     % nth0(RealRow, Board, NthRow),
     % nth0(RealCol, NthRow, NthCol),
     position(Board, Col-Row, TargetContent),
-    TargetContent = '  '. % pode também ser ' 1' ou ' I', dependendo do jogador
-                          % importante também, nesse caso, verificar a peça anterior
+    TargetContent = '  ' ; TargetContent = ' 1' ; TargetContent = ' I'.
+    % pode também ser ' 1' ou ' I', dependendo do jogador
+    % importante também, nesse caso, verificar a peça anterior
 
 validate(GameState, ColI-RowI, ColF-RowF) :-
     [Board, Player, _] = GameState,
@@ -165,8 +166,10 @@ validate(GameState, ColI-RowI, ColF-RowF) :-
     insideBoard(Board, ColF-RowF),
     pieceBelongsToPlayer(Piece, Player),
     targetAvailable(Board, ColF-RowF, Piece).
-    % need to also use behind_pos from board.pl to find out if the other target spot is available
-    
+    % aqui falta verificar se:
+    %   - a peça de destino tb pertence ao jogador
+    %   - a peça que fica atrás está disponível ou é do jogador e não é torre
+    %   - a movimentação avança, exatamente, duas casas
 
 % TODO checker for legal moves vai estar no game_cycle quando
 % se for a pedir o move 
