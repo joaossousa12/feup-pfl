@@ -113,8 +113,24 @@ move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
     NewTotalMoves is TotalMoves + 1,
     NewGameState = [NewBoard, NewPlayer, NewTotalMoves].
 
-% game_cycle(GameState):-
-% for game over
+valid_moves(GameState, ListOfMoves) :-
+    [Board, Player, _] = GameState,
+    findall(ColI-RowI-ColF-RowF, (
+        insideBoard(Board, ColI-RowI), 
+        position(Board, ColI-RowI, Piece), 
+        isTower(Piece),    
+        between(1, 8, ColF), between(1, 7, RowF),   
+        validate(GameState, ColI-RowI, ColF-RowF)  
+    ), ListOfMoves).
+
+game_over(GameState) :-
+    valid_moves(GameState, ListOfMoves),
+    length(ListOfMoves, 0).
+
+game_cycle(GameState):-
+    [_, Winner, _] = GameState,
+    game_over(GameState), !,
+    write('Game is Over!!').
 game_cycle(GameState):-
     second_element(GameState, Player),
     format('~w\'s turn\n', [Player]),
@@ -159,6 +175,11 @@ targetAvailable(Board, Col-Row, Player) :-
     ( TargetContent = ' I' ; TargetContent = ' 1' ),
     pieceBelongsToPlayer(TargetContent, Player).
 
+isTwoSquaresAway(Col1-Row1, Col2-Row2) :-
+    DeltaCol is abs(Col2 - Col1),
+    DeltaRow is abs(Row2 - Row1),
+    ((DeltaCol = 2, DeltaRow = 0) ; (DeltaCol = 0, DeltaRow = 2) ; (DeltaCol = 2, DeltaRow = 2)).
+
 validate(GameState, ColI-RowI, ColF-RowF) :-
     % get board and player from gamestate
     [Board, Player, _] = GameState,
@@ -183,14 +204,12 @@ validate(GameState, ColI-RowI, ColF-RowF) :-
 
     % check if the destinations belong to the player or are empty
     targetAvailable(Board, ColBeh-RowBeh, Player),
-    targetAvailable(Board, ColF-RowF, Player).
+    targetAvailable(Board, ColF-RowF, Player),
+
+    isTwoSquaresAway(ColI-RowI, ColF-RowF).
 
     % Aqui falta verificar se a peça final avança, exatamente, duas casas
     % e também se as moves são exatamente na diagonal (mas já tou farto disto)
-
-
-% TODO checker for legal moves vai estar no game_cycle quando
-% se for a pedir o move 
 
 play :-
     gamestate(GameState), !,
