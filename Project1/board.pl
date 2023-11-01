@@ -175,3 +175,22 @@ move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard3) :-
 
     % deduct 1 or add 1 based on the piece/lack thereof at the destination location
     % probably make a "place" predicate that checks this
+
+replace_piece(Board, Col-Row, Piece, NewBoard) :-
+    RowIndex is Row - 1,
+    ColIndex is Col - 1,
+    nth0(RowIndex, Board, Line),
+    replace(ColIndex, Piece, Line, NewLine),
+    replace(RowIndex, NewLine, Board, NewBoard).
+
+eat_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard) :-
+    position(Board, ColI-RowI, InitialPiece),
+
+    ((InitialPiece = 'II') ->
+        replace_piece(Board, ColI-RowI, ' I', TempBoard)
+    ;
+        replace_piece(Board, ColI-RowI, ' 2', TempBoard)
+    ),
+
+    remove_piece(TempBoard, ColF-RowF, NewBoard).
+

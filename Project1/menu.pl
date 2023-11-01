@@ -123,7 +123,11 @@ move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
     % aqui já se assume que a move é válida, certo?
     [Board, Player, TotalMoves] = GameState,
     position(Board, ColI-RowI, Piece), % get the piece at the initial position
-    move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard),
+    (isOneSquareAway(ColI-RowI, ColF-RowF) ->
+        eat_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard)
+    ;
+        move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard)
+    ),
     other_player(Player, NewPlayer),
     NewTotalMoves is TotalMoves + 1,
     NewGameState = [NewBoard, NewPlayer, NewTotalMoves].
@@ -195,12 +199,18 @@ isTwoSquaresAway(Col1-Row1, Col2-Row2) :-
     DeltaRow is abs(Row2 - Row1),
     ((DeltaCol = 2, DeltaRow = 0) ; (DeltaCol = 0, DeltaRow = 2) ; (DeltaCol = 2, DeltaRow = 2)).
 
+isOneSquareAway(Col1-Row1, Col2-Row2) :-
+    DeltaCol is abs(Col2 - Col1),
+    DeltaRow is abs(Row2 - Row1),
+    ((DeltaCol = 1, DeltaRow = 0) ; (DeltaCol = 0, DeltaRow = 1) ; (DeltaCol = 1, DeltaRow = 1)).
+
 validate(GameState, ColI-RowI, ColF-RowF) :-
     % get board and player from gamestate
     [Board, Player, _] = GameState,
     
     % get final and behind-piece position
     position(Board, ColI-RowI, Piece),
+    position(Board, ColF-RowF, PieceFinal),
     behind_pos(ColI-RowI-ColF-RowF, ColBeh-RowBeh), !, % por alguma razão, sem
     % este cut, quando falha a target available para o behind-position, ele volta
     % a calcular a posição, mas mal, porque fica igual à posição final e o resultado
@@ -217,11 +227,16 @@ validate(GameState, ColI-RowI, ColF-RowF) :-
     % check if the selected starting piece belongs to the player    
     pieceBelongsToPlayer(Piece, Player),
 
-    % check if the destinations belong to the player or are empty
-    targetAvailable(Board, ColBeh-RowBeh, Player),
-    targetAvailable(Board, ColF-RowF, Player),
-
-    isTwoSquaresAway(ColI-RowI, ColF-RowF).
+    (isTwoSquaresAway(ColI-RowI, ColF-RowF) ->
+        % check if the destinations belong to the player or are empty
+        targetAvailable(Board, ColBeh-RowBeh, Player),
+        targetAvailable(Board, ColF-RowF, Player)
+    ;
+    isOneSquareAway(ColI-RowI, ColF-RowF) ->
+        ((PieceFinal = ' 1') ; (PieceFinal = ' I')),
+        \+isTower(PieceFinal),
+        \+pieceBelongsToPlayer(PieceFinal, Player)
+    ).
 
 play :-
     gamestate(GameState), !,
