@@ -119,8 +119,13 @@ gamestate([Board, player1, 0]) :-
     title,
     initial_board(Board), print_board(Board).
 
+
+% ColI-RowI-ColF-RowF output move
+randomBotMove(GameState, ColI-RowI-ColF-RowF) :-
+    valid_moves(GameState, ListOfMoves),
+    random_member(ColI-RowI-ColF-RowF, ListOfMoves).
+
 move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
-    % aqui já se assume que a move é válida, certo?
     [Board, Player, TotalMoves] = GameState,
     position(Board, ColI-RowI, Piece), % get the piece at the initial position
     (isOneSquareAway(ColI-RowI, ColF-RowF) ->
@@ -138,7 +143,7 @@ valid_moves(GameState, ListOfMoves) :-
         insideBoard(Board, ColI-RowI), 
         position(Board, ColI-RowI, Piece), 
         isTower(Piece),    
-        between(1, 8, ColF), between(1, 7, RowF),   
+        insideBoard(Board, ColF-RowF),
         validate(GameState, ColI-RowI, ColF-RowF)  
     ), ListOfMoves).
 
@@ -147,12 +152,15 @@ game_over(GameState) :-
     length(ListOfMoves, 0).
 
 game_cycle(GameState):-
-    [_, Winner, _] = GameState,
+    [_, Winner, TotalMoves] = GameState,
     game_over(GameState), !,
-    write('Game is Over!!').
+    format('~a won with ~d moves!', [Winner, TotalMoves]).
 game_cycle(GameState):-
     second_element(GameState, Player),
     format('~w\'s turn\n', [Player]),
+    % testing random bot 
+    % randomBotMove(GameState, Col11-Row11-Col21-Row21),
+    % format('Random bot chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [Col11, Row11, Col21, Row21]),
     get_move(Board, Col1-Row1-Col2-Row2),
     % Validate the move
     (validate(GameState, Col1-Row1, Col2-Row2) ->
