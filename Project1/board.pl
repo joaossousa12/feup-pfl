@@ -1,5 +1,3 @@
-% 
-% consult('utils.pl').
 print_initial_board :- initial_board(X), print_board(X).
 
 % Define the initial state of the board as a matrix.

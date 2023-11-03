@@ -1,11 +1,20 @@
 % To be implemented
-
 /*
 computer_difficulty(comp) :-
     format('Select a computer difficulty for ', [comp]), nl,
     write('1. Easy\n'),
     write('2. Medium\n'),
     write('3. Difficult\n'), */
+
+greetings :-
+    write('--------------------------------------\n'),
+    write('      Welcome to Murus Gallicus       \n'),
+    write('--------------------------------------\n\n').
+
+title :-
+    write('   -----------------------------------------\n'),
+    write('                 Murus Gallicus             \n'),
+    write('   -----------------------------------------\n').
 
 get_line(Res, Acc) :-
     get_char(Char),
