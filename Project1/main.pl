@@ -89,7 +89,7 @@ display_help_menu :-
     write('7. If the opponent has an isolated piece next to one of your towers, you can sacrifice one of your pieces to "capture" the opponent\'s piece.\n'),
     write('8. At no point in the game should one player have more pieces than the other. When one player loses a piece, the other must sacrifice one as well, maintaining balance.\n'),
     write('9. A player wins under two conditions: by reaching the opponent\'s side of the board or by forcing a stalemate (where the opponent has no legal moves left).\n\n'),
-    write('Press any key to go back to main menu. Enjoy the game!!\n'),
+    write('\nPress any key to go back to main menu. Enjoy the game!!\n'),
     read(Quit).
 
 play :-
