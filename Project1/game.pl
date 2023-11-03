@@ -65,19 +65,22 @@ game_over(GameState) :-
     % either we reached the opponent's base or we ran out of moves
     ( base_reached(GameState) ; length(ListOfMoves, 0) ).
 
-game_cycle(GameState):-
-    [_, Player, TotalMoves] = GameState,
-    other_player(Player, Winner),
+game_cycle(GameState) :-
+    [_, CurrentPlayer, TotalMoves] = GameState,
+    other_player(CurrentPlayer, Winner),
+    player_name(Winner, WinnerName),
     game_over(GameState), !,
-    format('~a won with ~d moves!', [Winner, TotalMoves]).
+    PlayerMoves is TotalMoves div 2,
+    format('~a won with ~d moves!', [WinnerName, PlayerMoves]).
 game_cycle(GameState):-
     second_element(GameState, Player),
-    format('~w\'s turn\n', [Player]),
+    player_name(Player, PlayerName),
+    format('~w\'s turn\n', [PlayerName]),
     (isbot(Player, 1) ->
         randomBotMove(GameState, Col11-Row11-Col21-Row21),
         move(GameState,  Col11-Row11-Col21-Row21, NewGameState),
-        format('Random bot chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [Col11, Row11, Col21, Row21]),
-        sleep(0),
+        format('~w chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [PlayerName, Col11, Row11, Col21, Row21]),
+        sleep(2),
         first_element(NewGameState, NewBoard),
         clear_console,
         title,

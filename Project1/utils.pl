@@ -24,10 +24,10 @@ get_line(Res, Acc) :-
 get_line(Res, Acc):-
     atom_chars(Res, Acc).
 
-read_name(Player) :- % both outputs showing at the same time
-    format('~a, choose the name you want to be referred as: ', [Player]),
-    read(Name), % later add names with spaces
-    asserta(player_name(Player,Name)).
+% +Player, -PlayerName 
+read_name(Player, PlayerName) :- 
+    format('~w, choose the name you want to be referred as: ', [Player]),
+    read(PlayerName).
 
 clear_console:- 
     write('\33\[2J').

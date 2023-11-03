@@ -17,7 +17,7 @@ read_option(Choice) :-
     read(Choice),
     validate_choice(Choice).
 
-% Cut to prevent backtracking
+% cut to prevent backtracking
 validate_choice(Choice) :-
     (Choice = 1 ; Choice = 2 ; Choice = 3), !.
 
@@ -52,23 +52,27 @@ read_game_option(PlayChoice) :-
     validate_choice(PlayChoice).
 
 process_play_choice(1) :-
-    write('Player vs Player game ...\n').
-    % asserta(player_name(player1, 'João')), 
-    % asserta(player_name(player2, 'Pedro')). % testing
-    % read_name(player1), 
-    % read_name(player2).
+    write('Player vs Player game...\n'),
+    read_name(player1, Player1Name),
+    read_name(player2, Player2Name),
+    asserta(player_name(player1, Player1Name)), 
+    asserta(player_name(player2, Player2Name)).
+
 
 process_play_choice(2) :-
-    write('Player vs Computer game ...\n'),
+    write('Player vs Computer game...\n'),
     retract(isbot(player2, 0)),
-    asserta(isbot(player2, 1)). 
+    asserta(isbot(player2, 1)),
+    asserta(player_name(player2, 'Bot')).
 
 process_play_choice(3) :-
-    write('Computer vs Computer game ...\n'),
+    write('Computer vs Computer game...\n'),
     retract(isbot(player1, 0)), 
     retract(isbot(player2, 0)), 
     asserta(isbot(player1, 1)),
-    asserta(isbot(player2, 1)).
+    asserta(isbot(player2, 1)),
+    asserta(player_name(player1, 'Bot 1')),
+    asserta(player_name(player2, 'Bot 2')).
 
 process_play_choice(_) :-
     write('Invalid play mode. Please try again.\n'),
