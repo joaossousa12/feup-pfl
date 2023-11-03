@@ -19,18 +19,14 @@ read_option(Choice) :-
 
 % Cut to prevent backtracking
 validate_choice(Choice) :-
-    (Choice = 1 ; Choice = 2 ; Choice = 3),
-    !.
+    (Choice = 1 ; Choice = 2 ; Choice = 3), !.
 
 validate_choice(_) :-
     write('Invalid choice. Please try again.'), nl,
     read_option(Choice).
 
 process_choice(1) :-
-    display_play_menu. % type 1 for now to test
-    %init_game('h', 'h', GameState),
-	%display_game(GameState).
-    %display_play_menu.
+    display_play_menu.
 
 process_choice(2) :-
     % Need to maybe do another sub-menu after entering help menu to send back to main menu or quit the app.
