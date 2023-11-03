@@ -157,25 +157,30 @@ valid_moves(GameState, ListOfMoves) :-
         validate(GameState, ColI-RowI, ColF-RowF)  
     ), ListOfMoves).
 
+base_reached(GameState) :-
+    [Board, _, _] = GameState,
+    nth1(1, Board, FirstRow), % row 1 is actually row 7 ingame 
+    nth1(7, Board, LastRow), % and vice-versa
+    ( list_contains(FirstRow, ' I') ; list_contains(LastRow, ' 1') ).
+
 game_over(GameState) :-
     valid_moves(GameState, ListOfMoves),
-    length(ListOfMoves, 0).
+    % either we reached the opponent's base or we ran out of moves
+    ( base_reached(GameState) ; length(ListOfMoves, 0) ).
 
 game_cycle(GameState):-
-    [_, Winner, TotalMoves] = GameState,
+    [_, Player, TotalMoves] = GameState,
+    other_player(Player, Winner),
     game_over(GameState), !,
     format('~a won with ~d moves!', [Winner, TotalMoves]).
 game_cycle(GameState):-
     second_element(GameState, Player),
     format('~w\'s turn\n', [Player]),
-    % testing random bot 
-    % randomBotMove(GameState, Col11-Row11-Col21-Row21),
-    % format('Random bot chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [Col11, Row11, Col21, Row21]),
     (isbot(Player, 1) ->
         randomBotMove(GameState, Col11-Row11-Col21-Row21),
         move(GameState,  Col11-Row11-Col21-Row21, NewGameState),
         format('Random bot chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [Col11, Row11, Col21, Row21]),
-        sleep(2),
+        sleep(0),
         first_element(NewGameState, NewBoard),
         clear_console,
         title,

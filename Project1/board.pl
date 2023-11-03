@@ -173,9 +173,6 @@ move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard3) :-
     replace(ColIndex2, ResPiece2, Line2, NewLine2),
     replace(RowIndex2, NewLine2, NewBoard2, NewBoard3).
 
-    % deduct 1 or add 1 based on the piece/lack thereof at the destination location
-    % probably make a "place" predicate that checks this
-
 replace_piece(Board, Col-Row, Piece, NewBoard) :-
     RowIndex is Row - 1,
     ColIndex is Col - 1,

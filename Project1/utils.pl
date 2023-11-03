@@ -48,4 +48,7 @@ get_move(Board, ColI-RowI-ColF-RowF) :-
     read_row(RowF, 'Destiny row: '),
     read_col(ColF, 'Destiny column (lowercase): ').
 
-    % TODO: check if move is valid
+
+list_contains([], _) :- fail.
+list_contains([X|_], Target) :- X = Target, !.
+list_contains([_|Rest], Target) :- list_contains(Rest, Target).
