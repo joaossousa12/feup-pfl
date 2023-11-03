@@ -2,6 +2,7 @@
 :- consult('utils.pl').
 :- consult('board.pl').
 %:- consult('configurations.pl').
+:- dynamic isbot/2.
 
 other_player(player1, player2).
 other_player(player2, player1).
@@ -13,6 +14,9 @@ symbol(numeral, ' 2').
 symbol(numeral, ' 1').
 symbol(roman, ' I').
 symbol(roman, 'II').
+
+isbot(player1, 0). % 0 = false
+isbot(player2, 0). % 0 = false
 
 greetings :-
     write('--------------------------------------\n'),
@@ -80,10 +84,16 @@ process_play_choice(1) :-
     % read_name(player2).
 
 process_play_choice(2) :-
-    write('Player vs Computer game ...\n').
+    write('Player vs Computer game ...\n'),
+    retract(isbot(player2, 0)),
+    asserta(isbot(player2, 1)). 
 
 process_play_choice(3) :-
-    write('Computer vs Computer game ...\n').
+    write('Computer vs Computer game ...\n'),
+    retract(isbot(player1, 0)), 
+    retract(isbot(player2, 0)), 
+    asserta(isbot(player1, 1)),
+    asserta(isbot(player2, 1)).
 
 process_play_choice(_) :-
     write('Invalid play mode. Please try again.\n'),
@@ -161,6 +171,17 @@ game_cycle(GameState):-
     % testing random bot 
     % randomBotMove(GameState, Col11-Row11-Col21-Row21),
     % format('Random bot chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [Col11, Row11, Col21, Row21]),
+    (isbot(Player, 1) ->
+        randomBotMove(GameState, Col11-Row11-Col21-Row21),
+        move(GameState,  Col11-Row11-Col21-Row21, NewGameState),
+        format('Random bot chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [Col11, Row11, Col21, Row21]),
+        sleep(2),
+        first_element(NewGameState, NewBoard),
+        clear_console,
+        title,
+        print_board(NewBoard),
+        game_cycle(NewGameState)
+    ;
     get_move(Board, Col1-Row1-Col2-Row2),
     % Validate the move
     (validate(GameState, Col1-Row1, Col2-Row2) ->
@@ -173,6 +194,7 @@ game_cycle(GameState):-
     ; % Invalid move
         write('Invalid move. Please try again.\n'),
         game_cycle(GameState)
+    )
     ).
 
 insideBoard(Board, Col-Row) :- 
