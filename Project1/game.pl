@@ -263,7 +263,7 @@ piece_value(Piece, Value) :-
 
 position_value(Board, Col-Row, Player, PositionValue) :-
     other_player(Player, Opponent),
-    (Player = 1 -> DistanceFromOpponentHomeRow is 7 - Row ; DistanceFromOpponentHomeRow is Row - 1),
+    (Player = player1 -> DistanceFromOpponentHomeRow is 7 - Row ; DistanceFromOpponentHomeRow is Row - 1),
     findall(Distance, (position(Board, Col1-Row1, OpponentPiece), pieceBelongsToPlayer(OpponentPiece, Opponent), Distance is sqrt((Col-Col1)^2 + (Row-Row1)^2)), Distances),
     (Distances = [] -> MinDistance is 0 ; min_list(Distances, MinDistance)),  % Handle case where Distances is empty
     (DistanceFromOpponentHomeRow =:= 0 -> PositionValue1 is 0 ; PositionValue1 is 1 / DistanceFromOpponentHomeRow),  % Check if DistanceFromOpponentHomeRow is zero before division
