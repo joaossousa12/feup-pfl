@@ -4,7 +4,8 @@
 :- use_module(library(system)).
 :- use_module(library(random)).
 :- use_module(library(between)).
-:- dynamic isbot/2.
+:- dynamic isRandomBot/2.
+:- dynamic isGreedyBot/2.
 
 other_player(player1, player2).
 other_player(player2, player1).
@@ -17,8 +18,13 @@ symbol(numeral, ' 1').
 symbol(roman, ' I').
 symbol(roman, 'II').
 
-isbot(player1, 0). % 0 = false
-isbot(player2, 0). % 0 = false
+isRandomBot(player1, 0). % 0 = false
+isRandomBot(player2, 0). % 0 = false
+isGreedyBot(player1, 0). % 0 = false
+isGreedyBot(player2, 0). % 0 = false
+
+isBot(Player, 1) :-
+    isRandomBot(Player, 1) ; isGreedyBot(Player, 1).
 
 % initialize gamestate with board, first player is player1 and 0 totalmoves
 gamestate([Board, player1, 0]) :-
@@ -28,9 +34,26 @@ gamestate([Board, player1, 0]) :-
     initial_board(Board), print_board(Board).
 
 % ColI-RowI-ColF-RowF output move
-randomBotMove(GameState, ColI-RowI-ColF-RowF) :-
+botMove(GameState, ColI-RowI-ColF-RowF) :-
+    [_, Player, _] = GameState,
+    isRandomBot(Player, 1),
     valid_moves(GameState, ListOfMoves),
     random_member(ColI-RowI-ColF-RowF, ListOfMoves).
+
+botMove(GameState, ColI-RowI-ColF-RowF) :-
+    [_, Player, _] = GameState,
+    isGreedyBot(Player, 1),
+    valid_moves(GameState, ListOfMoves),
+    other_player(Player, OtherPlayer),
+    findall(Value-Coordinate, ( member(Coordinate, ListOfMoves), 
+                                move(GameState, Coordinate, NewGameState), 
+                                value(NewGameState,Player, Value1),
+                                minimax(NewGameState, NewPlayer, min, 1, Value2),
+                                Value is Value1 + Value2), Pairs),
+    sort(Pairs, SortedPairs),
+    last(SortedPairs, Max-_),
+    findall(Coordinates, member(Max-Coordinates, SortedPairs), MaxCoordinates),
+    random_member(ColI-RowI-ColF-RowF, MaxCoordinates).
 
 move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
     [Board, Player, TotalMoves] = GameState,
@@ -61,14 +84,16 @@ base_reached(GameState) :-
     ( list_contains(FirstRow, ' I') ; list_contains(LastRow, ' 1') ).
 
 game_over(GameState) :-
-    valid_moves(GameState, ListOfMoves),
-    % either we reached the opponent's base or we ran out of moves
-    ( base_reached(GameState) ; length(ListOfMoves, 0) ).
+    [Board, Player, _] = GameState,
+    other_player(Player, PreviousPlayer),
+    player_name(PreviousPlayer, PreviousName),
+    count_towers(Board, PreviousPlayer, TowerCount),
+    format('~w has ~w towers available \n', [PreviousName, TowerCount]),
+    ( base_reached(GameState) ;  TowerCount =:= 0).
 
 game_cycle(GameState) :-
-    [_, CurrentPlayer, TotalMoves] = GameState,
-    other_player(CurrentPlayer, Winner),
-    player_name(Winner, WinnerName),
+    [_, Player, TotalMoves] = GameState,
+    player_name(Player, WinnerName),
     game_over(GameState), !,
     PlayerMoves is TotalMoves div 2,
     format('~a won with ~d moves!', [WinnerName, PlayerMoves]).
@@ -76,13 +101,13 @@ game_cycle(GameState):-
     second_element(GameState, Player),
     player_name(Player, PlayerName),
     format('~w\'s turn\n', [PlayerName]),
-    (isbot(Player, 1) ->
-        randomBotMove(GameState, Col11-Row11-Col21-Row21),
+    (isBot(Player, 1) ->
+        botMove(GameState, Col11-Row11-Col21-Row21),
         move(GameState,  Col11-Row11-Col21-Row21, NewGameState),
         format('~w chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [PlayerName, Col11, Row11, Col21, Row21]),
-        sleep(2),
+        % sleep(2),
         first_element(NewGameState, NewBoard),
-        clear_console,
+        % clear_console,
         title,
         print_board(NewBoard),
         game_cycle(NewGameState)
@@ -172,3 +197,77 @@ validate(GameState, ColI-RowI, ColF-RowF) :-
         \+isTower(PieceFinal),
         \+pieceBelongsToPlayer(PieceFinal, Player)
     ).
+
+
+
+% greedy bot 
+
+count_towers(Board, Player, TowerCount) :-
+    count_towers_in_board(Board, Player, 0, TowerCount).
+
+count_towers_in_board([], _, TowerCount, TowerCount).
+count_towers_in_board([Row|RestRows], Player, Acc, TowerCount) :-
+    count_towers_in_row(Row, Player, 0, RowTowers),
+    NewAcc is Acc + RowTowers,
+    count_towers_in_board(RestRows, Player, NewAcc, TowerCount).
+
+count_towers_in_row([], _, RowTowers, RowTowers).
+count_towers_in_row([Piece | RestRow], Player, Acc, RowTowers) :-
+    (isTower(Piece), pieceBelongsToPlayer(Piece, Player) -> NewAcc is Acc + 1 ; NewAcc is Acc),
+    count_towers_in_row(RestRow, Player, NewAcc, RowTowers).
+
+
+swap_minimax(min, max).
+swap_minimax(max, min).
+
+eval(min, [Value|_], Result) :- Result is -Value.
+eval(max, Values, Value) :- last(Values, Value).
+
+minimax(_, _, _, 2, 0):- !.
+minimax(GameState, Player, Type, Level, Value):-
+	other_player(Player, NewPlayer),
+	swap_minimax(Type, NewType),
+    NextLevel is Level + 1,
+	valid_moves(GameState, ListOfMoves),
+	setof(Val, (  member(Coordinate, ListOfMoves), 
+                  move(GameState, Coordinate, NewGameState), 
+                  value(NewGameState,Player,Value1),
+                  minimax(NewGameState, NewPlayer, NewType, NextLevel, Value2), 
+                  Val is Value1 + Value2), Values),
+    eval(Type, Values, Value).
+
+value([Board, _, TotalMoves], Player, Value):-
+    other_player(Player, EnemyPlayer),
+    count_towers(Board, Player, TowerCount),
+    count_towers(Board, EnemyPlayerPlayer, EnemyTowerCount),
+    % format('towers is ~w', TowerCount),
+    evaluate_positions(Board, Player, PositionValue),
+    evaluate_positions(Board, EnemyPlayer, EnemyPositionValue),
+    Value is PositionValue + 100*(TowerCount - EnemyTowerCount). %- EnemyPositionValue.
+
+min_list([Min], Min).  % If there's only one element in the list, that's the minimum
+min_list([H|T], Min) :-
+    min_list(T, TMin),  % Find the minimum of the rest of the list
+    Min is min(H, TMin).  % The minimum is the smaller of H and TMin
+
+sum_list([], 0).  % The sum of an empty list is 0
+sum_list([H|T], Sum) :-
+    sum_list(T, TSum),  % Find the sum of the rest of the list
+    Sum is H + TSum.  % The sum is H plus the sum of the rest of the list
+
+evaluate_positions(Board, Player, PositionValue) :-
+    findall(Value, (position(Board, Col-Row, Piece), pieceBelongsToPlayer(Piece, Player), piece_value(Piece, Value), position_value(Board, Col-Row, Player, PositionValue)), Values), % Added Board to position_value call
+    sum_list(Values, PositionValue).
+
+piece_value(Piece, Value) :-
+    (isTower(Piece) -> Value is 3 ; Value is 1).  % Give higher value to towers
+
+position_value(Board, Col-Row, Player, PositionValue) :-
+    (Player = 1 -> DistanceFromOpponentHomeRow is 7 - Row ; DistanceFromOpponentHomeRow is Row - 1),
+    findall(Distance, (position(Board, Col1-Row1, OpponentPiece), pieceBelongsToPlayer(OpponentPiece, Opponent), Distance is sqrt((Col-Col1)^2 + (Row-Row1)^2)), Distances),
+    (Distances = [] -> MinDistance is 0 ; min_list(Distances, MinDistance)),  % Handle case where Distances is empty
+    (DistanceFromOpponentHomeRow =:= 0 -> PositionValue1 is 0 ; PositionValue1 is 1 / DistanceFromOpponentHomeRow),  % Check if DistanceFromOpponentHomeRow is zero before division
+    (MinDistance =:= 0 -> PositionValue2 is 0 ; PositionValue2 is 1 / MinDistance),  % Check if MinDistance is zero before division
+    PositionValue is PositionValue1 - PositionValue2.
+
+

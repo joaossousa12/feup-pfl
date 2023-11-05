@@ -1,3 +1,5 @@
+:- consult('utils.pl').
+
 print_initial_board :- initial_board(X), print_board(X).
 
 % Define the initial state of the board as a matrix.
@@ -70,9 +72,6 @@ remove_piece(Board, Col-Row, NewBoard) :-
     nth0(RowIndex, Board, Line),
     replace(ColIndex, '  ', Line, NewLine),
     replace(RowIndex, NewLine, Board, NewBoard).
-
-
-
 
 behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
     % straight down, place at rowf-1

@@ -61,18 +61,18 @@ process_play_choice(1) :-
 
 process_play_choice(2) :-
     write('Player vs Computer game...\n'),
-    retract(isbot(player2, 0)),
-    asserta(isbot(player2, 1)),
-    asserta(player_name(player2, 'Bot')).
+    retract(isGreedyBot(player2, 0)),
+    asserta(isGreedyBot(player2, 1)),
+    asserta(player_name(player2, 'Greedy Bot')).
 
 process_play_choice(3) :-
     write('Computer vs Computer game...\n'),
-    retract(isbot(player1, 0)), 
-    retract(isbot(player2, 0)), 
-    asserta(isbot(player1, 1)),
-    asserta(isbot(player2, 1)),
-    asserta(player_name(player1, 'Bot 1')),
-    asserta(player_name(player2, 'Bot 2')).
+    retract(isRandomBot(player2, 0)), 
+    asserta(isRandomBot(player2, 1)),
+    asserta(player_name(player2, 'Random Bot')),
+    retract(isGreedyBot(player1, 0)), 
+    asserta(isGreedyBot(player1, 1)),
+    asserta(player_name(player1, 'Greedy Bot')).
 
 process_play_choice(_) :-
     write('Invalid play mode. Please try again.\n'),
