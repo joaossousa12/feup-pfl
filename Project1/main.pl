@@ -85,7 +85,7 @@ display_help_menu :-
     write('Murus Gallicus is a game where players strategically conquer territories to defeat opponents.\n\n'),
     write('Rules and Notes:\n\n'),
     write('1. Towers are formed by stacking two pieces (2 or II).\n'),
-    write('2. The decimal pieces start to play.\n'),
+    write('2. The roman pieces start to play.\n'),
     write('3. Only towers are allowed to move.\n'),
     write('4. To move, select one of your towers and click two spaces away from it in any direction. One piece will move to the clicked spot, and the other stays in the middle space.\n'),
     write('5. You cannot move to a space that already has two of your pieces or one opponent\'s piece (either a single piece or a tower).\n'),
