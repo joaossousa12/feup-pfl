@@ -1,9 +1,3 @@
-:- consult('board.pl').
-:- consult('utils.pl').
-:- use_module(library(lists)).
-:- use_module(library(system)).
-:- use_module(library(random)).
-:- use_module(library(between)).
 :- dynamic isRandomBot/2.
 :- dynamic isGreedyBot/2.
 
@@ -48,7 +42,7 @@ botMove(GameState, ColI-RowI-ColF-RowF) :-
     findall(Value-Coordinate, ( member(Coordinate, ListOfMoves), 
                                 move(GameState, Coordinate, NewGameState), 
                                 value(NewGameState,Player, Value1),
-                                minimax(NewGameState, NewPlayer, min, 1, Value2),
+                                minimax(NewGameState, OtherPlayer, min, 1, Value2),
                                 Value is Value1 + Value2), Pairs),
     sort(Pairs, SortedPairs),
     last(SortedPairs, Max-_),
@@ -59,7 +53,7 @@ move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
     [Board, Player, TotalMoves] = GameState,
     position(Board, ColI-RowI, Piece), % get the piece at the initial position
     (isOneSquareAway(ColI-RowI, ColF-RowF) ->
-        eat_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard)
+        eat_piece(Board, ColI-RowI-ColF-RowF, NewBoard)
     ;
         move_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard)
     ),
@@ -68,12 +62,12 @@ move(GameState, ColI-RowI-ColF-RowF, NewGameState) :-
     NewGameState = [NewBoard, NewPlayer, NewTotalMoves].
 
 valid_moves(GameState, ListOfMoves) :-
-    [Board, Player, _] = GameState,
+    [Board, _, _] = GameState,
     findall(ColI-RowI-ColF-RowF, (
-        insideBoard(Board, ColI-RowI), 
+        insideBoard(ColI-RowI), 
         position(Board, ColI-RowI, Piece), 
         isTower(Piece),    
-        insideBoard(Board, ColF-RowF),
+        insideBoard(ColF-RowF),
         validate(GameState, ColI-RowI, ColF-RowF)  
     ), ListOfMoves).
 
@@ -86,9 +80,10 @@ base_reached(GameState) :-
 game_over(GameState) :-
     [Board, Player, _] = GameState,
     other_player(Player, PreviousPlayer),
-    player_name(PreviousPlayer, PreviousName),
     count_towers(Board, PreviousPlayer, TowerCount),
-    format('~w has ~w towers available \n', [PreviousName, TowerCount]),
+    % testing
+    % player_name(PreviousPlayer, PreviousName),
+    % format('~w has ~w towers available \n', [PreviousName, TowerCount]),
     ( base_reached(GameState) ;  TowerCount =:= 0).
 
 game_cycle(GameState) :-
@@ -96,7 +91,10 @@ game_cycle(GameState) :-
     player_name(Player, WinnerName),
     game_over(GameState), !,
     PlayerMoves is TotalMoves div 2,
-    format('~a won with ~d moves!', [WinnerName, PlayerMoves]).
+    format('~a won with ~d moves!\n', [WinnerName, PlayerMoves]),
+    % quits
+    write('\nPress any key to quit. Thanks for playing!\n'),
+    read(_).
 game_cycle(GameState):-
     second_element(GameState, Player),
     player_name(Player, PlayerName),
@@ -107,12 +105,12 @@ game_cycle(GameState):-
         format('~w chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [PlayerName, Col11, Row11, Col21, Row21]),
         % sleep(2),
         first_element(NewGameState, NewBoard),
-        % clear_console,
+        clear_console,
         title,
         print_board(NewBoard),
         game_cycle(NewGameState)
     ;
-    get_move(Board, Col1-Row1-Col2-Row2),
+    get_move(Col1-Row1-Col2-Row2),
     % Validate the move
     (validate(GameState, Col1-Row1, Col2-Row2) ->
         move(GameState, Col1-Row1-Col2-Row2, NewGameState),
@@ -127,8 +125,7 @@ game_cycle(GameState):-
     )
     ).
 
-insideBoard(Board, Col-Row) :- 
-    % length(Board, Size), aqui n podia ser assim pq a board n é quadrada ent quando movias para a column h ñ dava
+insideBoard(Col-Row) :- 
     between(1, 7, Row),
     between(1, 8, Col).
 
@@ -143,13 +140,15 @@ pieceBelongsToPlayer(Piece, Player) :-
 isTower(Piece) :- 
     (Piece = ' 2' ; Piece = 'II').
 
-targetAvailable(Board, Col-Row, Player) :-
+targetAvailable(GameState, Col-Row) :-
     % se for espaço vazio, não há problema
+    [Board, _, _] = GameState,
     position(Board, Col-Row, TargetContent),
     TargetContent = '  '.
 
-targetAvailable(Board, Col-Row, Player) :-
+targetAvailable(GameState, Col-Row) :-
     % se não for um espaço vazio, tem de ser uma peça unitária que pertence ao jogador
+    [Board, Player, _] = GameState,
     position(Board, Col-Row, TargetContent),
     ( TargetContent = ' I' ; TargetContent = ' 1' ),
     pieceBelongsToPlayer(TargetContent, Player).
@@ -180,17 +179,17 @@ validate(GameState, ColI-RowI, ColF-RowF) :-
     isTower(Piece),
 
     % check if initial, behind and final slots are whithin the board's range
-    insideBoard(Board, ColI-RowI),
-    insideBoard(Board, ColBeh-RowBeh),
-    insideBoard(Board, ColF-RowF),
+    insideBoard(ColI-RowI),
+    insideBoard(ColBeh-RowBeh),
+    insideBoard(ColF-RowF),
 
     % check if the selected starting piece belongs to the player    
     pieceBelongsToPlayer(Piece, Player),
 
     (isTwoSquaresAway(ColI-RowI, ColF-RowF) ->
         % check if the destinations belong to the player or are empty
-        targetAvailable(Board, ColBeh-RowBeh, Player),
-        targetAvailable(Board, ColF-RowF, Player)
+        targetAvailable(GameState, ColBeh-RowBeh),
+        targetAvailable(GameState, ColF-RowF)
     ;
     isOneSquareAway(ColI-RowI, ColF-RowF) ->
         ((PieceFinal = ' 1') ; (PieceFinal = ' I')),
@@ -236,13 +235,13 @@ minimax(GameState, Player, Type, Level, Value):-
                   Val is Value1 + Value2), Values),
     eval(Type, Values, Value).
 
-value([Board, _, TotalMoves], Player, Value):-
+value([Board, _, _], Player, Value):-
     other_player(Player, EnemyPlayer),
     count_towers(Board, Player, TowerCount),
-    count_towers(Board, EnemyPlayerPlayer, EnemyTowerCount),
+    count_towers(Board, EnemyPlayer, EnemyTowerCount),
     % format('towers is ~w', TowerCount),
     evaluate_positions(Board, Player, PositionValue),
-    evaluate_positions(Board, EnemyPlayer, EnemyPositionValue),
+    % evaluate_positions(Board, EnemyPlayer, EnemyPositionValue),
     Value is PositionValue + 100*(TowerCount - EnemyTowerCount). %- EnemyPositionValue.
 
 min_list([Min], Min).  % If there's only one element in the list, that's the minimum
@@ -263,6 +262,7 @@ piece_value(Piece, Value) :-
     (isTower(Piece) -> Value is 3 ; Value is 1).  % Give higher value to towers
 
 position_value(Board, Col-Row, Player, PositionValue) :-
+    other_player(Player, Opponent),
     (Player = 1 -> DistanceFromOpponentHomeRow is 7 - Row ; DistanceFromOpponentHomeRow is Row - 1),
     findall(Distance, (position(Board, Col1-Row1, OpponentPiece), pieceBelongsToPlayer(OpponentPiece, Opponent), Distance is sqrt((Col-Col1)^2 + (Row-Row1)^2)), Distances),
     (Distances = [] -> MinDistance is 0 ; min_list(Distances, MinDistance)),  % Handle case where Distances is empty

@@ -1,6 +1,10 @@
 :- consult('game.pl').
 :- consult('board.pl').
 :- consult('utils.pl').
+:- use_module(library(lists)).
+:- use_module(library(system)).
+:- use_module(library(random)).
+:- use_module(library(between)).
 
 main_menu :-
     clear_console,
@@ -17,13 +21,13 @@ read_option(Choice) :-
     read(Choice),
     validate_choice(Choice).
 
-% cut to prevent backtracking
 validate_choice(Choice) :-
     (Choice = 1 ; Choice = 2 ; Choice = 3), !.
 
 validate_choice(_) :-
     write('Invalid choice. Please try again.'), nl,
-    read_option(Choice).
+    sleep(1),
+    main_menu.
 
 process_choice(1) :-
     display_play_menu.
@@ -60,19 +64,71 @@ process_play_choice(1) :-
 
 
 process_play_choice(2) :-
-    write('Player vs Computer game...\n'),
-    retract(isGreedyBot(player2, 0)),
-    asserta(isGreedyBot(player2, 1)),
-    asserta(player_name(player2, 'Greedy Bot')).
+    read_name(player1, Player1Name),
+    asserta(player_name(player1, Player1Name)),
+    write('Select the type of game:\n'),   
+    write('1. Greedy bot\n'),
+    write('2. Random bot\n'),
+    read(GameTypeChoice),
+    (
+        GameTypeChoice = 1 ->
+            retract(isGreedyBot(player2, 0)),
+            asserta(isGreedyBot(player2, 1)),
+            asserta(player_name(player2, 'Greedy Bot'))
+    ;
+        GameTypeChoice = 2 ->
+            retract(isRandomBot(player2, 0)),
+            asserta(isRandomBot(player2, 1)),
+            asserta(player_name(player2, 'Random Bot'))
+    ;
+        write('Invalid choice. Please try again.\n'),
+        display_play_menu
+    ).
 
 process_play_choice(3) :-
-    write('Computer vs Computer game...\n'),
-    retract(isRandomBot(player2, 0)), 
-    asserta(isRandomBot(player2, 1)),
-    asserta(player_name(player2, 'Random Bot')),
-    retract(isGreedyBot(player1, 0)), 
-    asserta(isGreedyBot(player1, 1)),
-    asserta(player_name(player1, 'Greedy Bot')).
+    write('Select the type of game:\n'),
+    write('1. Greedy vs. Greedy\n'),
+    write('2. Random vs. Random\n'),
+    write('3. Random vs. Greedy\n'),
+    write('4. Greedy vs. Random\n'),
+    read(GameTypeChoice),
+    (
+        GameTypeChoice = 1 -> 
+            retract(isGreedyBot(player1, 0)), 
+            asserta(isGreedyBot(player1, 1)),
+            asserta(player_name(player1, 'Greedy Bot 1')),
+            retract(isGreedyBot(player2, 0)), 
+            asserta(isGreedyBot(player2, 1)),
+            asserta(player_name(player2, 'Greedy Bot 2'))
+    ;
+        GameTypeChoice = 2 ->
+            retract(isRandomBot(player1, 0)), 
+            asserta(isRandomBot(player1, 1)),
+            asserta(player_name(player1, 'Random Bot 1')),
+            retract(isRandomBot(player2, 0)), 
+            asserta(isRandomBot(player2, 1)),
+            asserta(player_name(player2, 'Random Bot 2'))
+
+    ;
+        GameTypeChoice = 3 -> 
+            retract(isRandomBot(player1, 0)), 
+            asserta(isRandomBot(player1, 1)),
+            asserta(player_name(player1, 'Random Bot')),
+            retract(isGreedyBot(player2, 0)), 
+            asserta(isGreedyBot(player2, 1)),
+            asserta(player_name(player2, 'Greedy Bot'))
+    ;
+        GameTypeChoice = 4 ->  %for tests
+            retract(isGreedyBot(player1, 0)), 
+            asserta(isGreedyBot(player1, 1)),
+            asserta(player_name(player1, 'Greedy Bot')),
+            retract(isRandomBot(player2, 0)), 
+            asserta(isRandomBot(player2, 1)),
+            asserta(player_name(player2, 'Random Bot'))
+    ;
+        write('Invalid choice. Please try again.\n'),
+        display_play_menu
+    ).
 
 process_play_choice(_) :-
     write('Invalid play mode. Please try again.\n'),
@@ -94,7 +150,7 @@ display_help_menu :-
     write('8. At no point in the game should one player have more pieces than the other. When one player loses a piece, the other must sacrifice one as well, maintaining balance.\n'),
     write('9. A player wins under two conditions: by reaching the opponent\'s side of the board or by forcing a stalemate (where the opponent has no legal moves left).\n\n'),
     write('\nPress any key to go back to main menu. Enjoy the game!!\n'),
-    read(Quit).
+    read(_).
 
 play :-
     gamestate(GameState), !,

@@ -1,11 +1,3 @@
-% To be implemented
-/*
-computer_difficulty(comp) :-
-    format('Select a computer difficulty for ', [comp]), nl,
-    write('1. Easy\n'),
-    write('2. Medium\n'),
-    write('3. Difficult\n'), */
-
 greetings :-
     write('--------------------------------------\n'),
     write('      Welcome to Murus Gallicus       \n'),
@@ -40,10 +32,14 @@ first_element([X | _], X).
 second_element([_, X | _], X).
 
 read_row(Row, Str) :-
+    repeat,
     format('~w', Str),
     read(DispRow),
-    Row is 8 - DispRow.
-
+    ((integer(DispRow), DispRow >= 1, DispRow =< 7) ->
+        Row is 8 - DispRow
+    ;   write('Wrong input. Please enter a valid row (1-7).\n'),
+        fail  % Fail to re-prompt
+    ).
 read_col(Col, Str) :-
     % pequeno problema ter de ser lowercase para funcionar, se não, dá erro
     % com get_char o programa passa à frente por alguma razão
@@ -51,7 +47,7 @@ read_col(Col, Str) :-
     read(DispCol),
     char_code(DispCol, AsciiCode),
     Col is AsciiCode - 96.
-get_move(Board, ColI-RowI-ColF-RowF) :-
+get_move(ColI-RowI-ColF-RowF) :-
     read_row(RowI, 'Origin row: '),
     read_col(ColI, 'Origin column (lowercase): '),
     read_row(RowF, 'Destiny row: '),

@@ -1,5 +1,3 @@
-:- consult('utils.pl').
-
 print_initial_board :- initial_board(X), print_board(X).
 
 % Define the initial state of the board as a matrix.
@@ -177,7 +175,7 @@ replace_piece(Board, Col-Row, Piece, NewBoard) :-
     replace(ColIndex, Piece, Line, NewLine),
     replace(RowIndex, NewLine, Board, NewBoard).
 
-eat_piece(Board, ColI-RowI-ColF-RowF, Piece, NewBoard) :-
+eat_piece(Board, ColI-RowI-ColF-RowF, NewBoard) :-
     position(Board, ColI-RowI, InitialPiece),
 
     ((InitialPiece = 'II') ->
