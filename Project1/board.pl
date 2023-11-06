@@ -10,7 +10,7 @@ initial_board([
     ['II', 'II', 'II', 'II', 'II', 'II', 'II', 'II']
 ]).
 
-% display_game(+GameStae)
+% display_game(+GameState)
 % displays the current game state
 display_game(GameState) :-
     nl,
