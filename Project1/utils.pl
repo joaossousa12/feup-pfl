@@ -53,6 +53,19 @@ get_move(ColI-RowI-ColF-RowF) :-
     read_row(RowF, 'Destiny row: '),
     read_col(ColF, 'Destiny column (lowercase): ').
 
+% min_list(+List, -Min)
+% find the minimum element of a list
+min_list([Min], Min).
+min_list([H|T], Min) :-
+    min_list(T, TMin),
+    Min is min(H, TMin). 
+
+% sum_list(+List, -Sum)
+% sum the elements of a list
+sum_list([], 0).
+sum_list([H|T], Sum) :-
+    sum_list(T, TSum),
+    Sum is H + TSum.
 
 list_contains([], _) :- fail.
 list_contains([X|_], Target) :- X = Target, !.

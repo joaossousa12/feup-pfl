@@ -163,15 +163,18 @@ pieceBelongsToPlayer(Piece, Player) :-
     symbol(Type, Piece),
     piece_info(Type, Player).
 
+% isTower(+Piece)
+% checks if a piece is a tower
 isTower(Piece) :- 
     (Piece = ' 2' ; Piece = 'II').
 
+% targetAvailable(+GameState, +Position)
+% checks if target position is available
 targetAvailable(GameState, Col-Row) :-
     % se for espaço vazio, não há problema
     [Board, _, _] = GameState,
     position(Board, Col-Row, TargetContent),
     TargetContent = '  '.
-
 targetAvailable(GameState, Col-Row) :-
     % se não for um espaço vazio, tem de ser uma peça unitária que pertence ao jogador
     [Board, Player, _] = GameState,
@@ -179,16 +182,23 @@ targetAvailable(GameState, Col-Row) :-
     ( TargetContent = ' I' ; TargetContent = ' 1' ),
     pieceBelongsToPlayer(TargetContent, Player).
 
+% isTwoSquaresAway(+Position1, +Position2)
+% checks is position 1 is exactly 2 squares of distance away from position 2
 isTwoSquaresAway(Col1-Row1, Col2-Row2) :-
     DeltaCol is abs(Col2 - Col1),
     DeltaRow is abs(Row2 - Row1),
     ((DeltaCol = 2, DeltaRow = 0) ; (DeltaCol = 0, DeltaRow = 2) ; (DeltaCol = 2, DeltaRow = 2)).
 
+% isOneSquareAway(+Position1, +Position2)
+% checks is position 1 is exactly 1 square of distance away from position 2
 isOneSquareAway(Col1-Row1, Col2-Row2) :-
     DeltaCol is abs(Col2 - Col1),
     DeltaRow is abs(Row2 - Row1),
     ((DeltaCol = 1, DeltaRow = 0) ; (DeltaCol = 0, DeltaRow = 1) ; (DeltaCol = 1, DeltaRow = 1)).
 
+% validate(+GameState, +InitialPosition, +FinalPosition)
+% validates if a move conforms with the game's rules 
+% by doing a series of verifications 
 validate(GameState, ColI-RowI, ColF-RowF) :-
     % get board and player from gamestate
     [Board, Player, _] = GameState,
@@ -220,26 +230,32 @@ validate(GameState, ColI-RowI, ColF-RowF) :-
         \+pieceBelongsToPlayer(PieceFinal, Player)
     ).
 
+% count_towers(+Board, +Player, -TowerCount)
+% counts how many towers a player has left
 count_towers(Board, Player, TowerCount) :-
     count_towers_in_board(Board, Player, 0, TowerCount).
-
 count_towers_in_board([], _, TowerCount, TowerCount).
 count_towers_in_board([Row|RestRows], Player, Acc, TowerCount) :-
     count_towers_in_row(Row, Player, 0, RowTowers),
     NewAcc is Acc + RowTowers,
     count_towers_in_board(RestRows, Player, NewAcc, TowerCount).
-
 count_towers_in_row([], _, RowTowers, RowTowers).
 count_towers_in_row([Piece | RestRow], Player, Acc, RowTowers) :-
     (isTower(Piece), pieceBelongsToPlayer(Piece, Player) -> NewAcc is Acc + 1 ; NewAcc is Acc),
     count_towers_in_row(RestRow, Player, NewAcc, RowTowers).
 
+% swap_minimax(+Mode, -NewMode)
+% swaps minimax algorithm mode
 swap_minimax(min, max).
 swap_minimax(max, min).
 
+% eval(+Mode, +Values, -Result)
+% unifies result with the value according to the minimax mode
 eval(min, [Value|_], Result) :- Result is -Value.
 eval(max, Values, Value) :- last(Values, Value).
 
+% minimax(+GameState, +Player, +Type, -Value)
+% minimax algorithm with depth 2 for greedy bot
 minimax(_, _, _, 2, 0):- !.
 minimax(GameState, Player, Type, Level, Value):-
 	other_player(Player, NewPlayer),
@@ -253,39 +269,44 @@ minimax(GameState, Player, Type, Level, Value):-
                   Val is Value1 + Value2), Values),
     eval(Type, Values, Value).
 
+% value(+GameState, +Player, -Value)
+% used by minimax to value a specific game state
 value([Board, _, _], Player, Value):-
     other_player(Player, EnemyPlayer),
     count_towers(Board, Player, TowerCount),
     count_towers(Board, EnemyPlayer, EnemyTowerCount),
-    % format('towers is ~w', TowerCount),
     evaluate_positions(Board, Player, PositionValue),
-    % evaluate_positions(Board, EnemyPlayer, EnemyPositionValue),
-    Value is PositionValue + 100*(TowerCount - EnemyTowerCount). %- EnemyPositionValue.
+    Value is PositionValue + 100*(TowerCount - EnemyTowerCount).
 
-min_list([Min], Min).  % If there's only one element in the list, that's the minimum
-min_list([H|T], Min) :-
-    min_list(T, TMin),  % Find the minimum of the rest of the list
-    Min is min(H, TMin).  % The minimum is the smaller of H and TMin
-
-sum_list([], 0).  % The sum of an empty list is 0
-sum_list([H|T], Sum) :-
-    sum_list(T, TSum),  % Find the sum of the rest of the list
-    Sum is H + TSum.  % The sum is H plus the sum of the rest of the list
-
+% evaluate_positions(+Board, +Player, -PositionValue)
+% evaluates piece positions
 evaluate_positions(Board, Player, PositionValue) :-
-    findall(Value, (position(Board, Col-Row, Piece), pieceBelongsToPlayer(Piece, Player), piece_value(Piece, Value), position_value(Board, Col-Row, Player, PositionValue)), Values), % Added Board to position_value call
+    findall(Value, 
+            (position(Board, Col-Row, Piece), 
+            pieceBelongsToPlayer(Piece, Player), 
+            piece_value(Piece, Value), 
+            position_value(Board, Col-Row, Player, PositionValue)), 
+    Values),
     sum_list(Values, PositionValue).
 
+% piece_value(+Piece, -Value)
+% determines how valuable a piece is
 piece_value(Piece, Value) :-
     (isTower(Piece) -> Value is 3 ; Value is 1).  % Give higher value to towers
 
+% position_value(+Board, +Position, +Player, -PositionValue)
+% determines the value of a specific piece position based on game rules and strategy
 position_value(Board, Col-Row, Player, PositionValue) :-
     other_player(Player, Opponent),
     (Player = player1 -> DistanceFromOpponentHomeRow is 7 - Row ; DistanceFromOpponentHomeRow is Row - 1),
-    findall(Distance, (position(Board, Col1-Row1, OpponentPiece), pieceBelongsToPlayer(OpponentPiece, Opponent), Distance is sqrt((Col-Col1)^2 + (Row-Row1)^2)), Distances),
-    (Distances = [] -> MinDistance is 0 ; min_list(Distances, MinDistance)),  % Handle case where Distances is empty
-    (DistanceFromOpponentHomeRow =:= 0 -> PositionValue1 is 0 ; PositionValue1 is 1 / DistanceFromOpponentHomeRow),  % Check if DistanceFromOpponentHomeRow is zero before division
-    (MinDistance =:= 0 -> PositionValue2 is 0 ; PositionValue2 is 1 / MinDistance),  % Check if MinDistance is zero before division
+    findall(Distance, 
+            (position(Board, Col1-Row1, OpponentPiece), 
+            pieceBelongsToPlayer(OpponentPiece, Opponent), 
+            Distance is sqrt((Col-Col1)^2 + (Row-Row1)^2)), 
+    Distances),
+    (Distances = [] -> MinDistance is 0 ; min_list(Distances, MinDistance)),
+    (DistanceFromOpponentHomeRow =:= 0 -> PositionValue1 is 0 ; PositionValue1 is 1 / DistanceFromOpponentHomeRow),
+    (MinDistance =:= 0 -> PositionValue2 is 0 ; PositionValue2 is 1 / MinDistance),
     PositionValue is PositionValue1 - PositionValue2.
 
 

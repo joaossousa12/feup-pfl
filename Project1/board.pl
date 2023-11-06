@@ -1,4 +1,5 @@
-% Define the initial state of the board as a matrix.
+% initial_board(+Board)
+% define the initial state of the board as a matrix.
 initial_board([
     [' 2', ' 2', ' 2', ' 2', ' 2', ' 2', ' 2', ' 2'],
     ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
@@ -9,7 +10,7 @@ initial_board([
     ['II', 'II', 'II', 'II', 'II', 'II', 'II', 'II']
 ]).
 
-% Function to print the board.
+% displays the current game state
 display_game(GameState) :-
     nl,
     print_board_separator,
