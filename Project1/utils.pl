@@ -36,7 +36,6 @@ clear_console:-
 % clear_data
 % clears data after the game is finished
 clear_data :-
-    % to add more
     retractall(player_name(_,_)).
 
 % first_element(+List, -Element)

@@ -96,22 +96,33 @@ base_reached(GameState) :-
     nth1(7, Board, LastRow), % and vice-versa
     ( list_contains(FirstRow, ' I') ; list_contains(LastRow, ' 1') ).
 
-% game_over(+GameState)
-% checks if game is over
-game_over(GameState) :-
+% game_over(+GameState, -Winner)
+% checks if game is over and decides the winner
+game_over(GameState, Winner) :-
+    % if base is reached, previous player 
+    % (the one who reached the opponent's base) wins
+    [Board, Player, _] = GameState,
+    base_reached(GameState),
+    other_player(Player, WinnerPlayer),
+    player_name(WinnerPlayer, Winner).
+game_over(GameState, Winner) :-
+    % if other player (previous) is out of towers, 
+    % but no base was reached, current player wins
     [Board, Player, _] = GameState,
     other_player(Player, PreviousPlayer),
     count_towers(Board, PreviousPlayer, TowerCount),
-    ( base_reached(GameState) ;  TowerCount =:= 0).
+    TowerCount =:= 0,
+    player_name(Player, Winner).
 
 % game_cycle(+GameState)
 % game loop
 game_cycle(GameState) :-
-    [_, Player, TotalMoves] = GameState,
-    player_name(Player, WinnerName),
-    game_over(GameState), !,
+    [_, _, TotalMoves] = GameState,
+    % [_, Player, TotalMoves] = GameState,
+    % player_name(Player, WinnerName),
+    game_over(GameState, Winner), !,
     PlayerMoves is TotalMoves div 2,
-    format('~a won with ~d moves!\n', [WinnerName, PlayerMoves]),
+    format('~a won with ~d moves!\n', [Winner, PlayerMoves]),
     % quits
     write('\nPress any key to quit. Thanks for playing!\n'),
     read(_).
