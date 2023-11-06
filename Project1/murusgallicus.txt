@@ -1,9 +1,0 @@
--stacks de duas peças são torres
--peças brancas começam a jogar
--só as torres é que se podem mexer
--começamos por selecionar uma das nossas torres e temos de clickar a 2 espaços dela em qualquer direção e uma das peças vai para esse sitio onde clickamos e a outra fica no espaço do meio.
--não podemos calhar em cima de um espaço que tenha já 2 das nossas peças ou 1 do oponente.
--se nos com a nossa torre clickarmos numa peça que tenhamos isolada vamos ficar com uma torre e uma peça no espaço do meio.
--se o oponente tiver um peça isolada a beira de uma torre nossa nós podemos sacrificar uma das nossas peças e "comer" a peça do oponente
--em nenhuma altura do jogo um jogador vai ter mais peças que outro quando um perde uma peça o outro tmb perde basicamente scrifica-se uma peça para ganhar um melhor posicionamento
--um jogador ganha em 2 situações distintas. Por chegar ao lado do tabuleiro do oponente ou por dar stalemate ao oponente (o oponente não ter nenhum legal move possivel)
