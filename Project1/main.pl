@@ -6,6 +6,8 @@
 :- use_module(library(random)).
 :- use_module(library(between)).
 
+% main_menu
+% displays the main menu
 main_menu :-
     clear_console,
     greetings,
@@ -16,32 +18,36 @@ main_menu :-
     read_option(Choice),
     process_choice(Choice).
 
+% read_option(?Choice)
+% reads a menu option from user input
 read_option(Choice) :-
     write('Enter your choice (1, 2, or 3): '),
     read(Choice),
     validate_choice(Choice).
 
+% validate_cjoice(+Choice)
+% validates a menu option choice
 validate_choice(Choice) :-
     (Choice = 1 ; Choice = 2 ; Choice = 3), !.
-
 validate_choice(_) :-
     write('Invalid choice. Please try again.'), nl,
     sleep(1),
     main_menu.
 
+% process_choice(+Choice)
+% processes menu option choice after validation
 process_choice(1) :-
     display_play_menu.
-
 process_choice(2) :-
-    % Need to maybe do another sub-menu after entering help menu to send back to main menu or quit the app.
     display_help_menu,
     main_menu.
-
 process_choice(3) :-
     write('Thanks for playing!\n'),
     sleep(2),
     halt.
 
+% display_play_menu
+% displays the play menu
 display_play_menu :-
     write('Choose how to play the game:\n'),
     write('1. Player vs Player\n'),
@@ -50,19 +56,20 @@ display_play_menu :-
     read_game_option(PlayChoice),
     process_play_choice(PlayChoice).
 
+% read_game_option(?PlayChoice)
+% reads a game option from user input
 read_game_option(PlayChoice) :-
     write('Enter your choice (1, 2, or 3): '),
     read(PlayChoice),
     validate_choice(PlayChoice).
 
+% processes play option choice after validation
 process_play_choice(1) :-
     write('Player vs Player game...\n'),
     read_name(player1, Player1Name),
     read_name(player2, Player2Name),
     asserta(player_name(player1, Player1Name)), 
     asserta(player_name(player2, Player2Name)).
-
-
 process_play_choice(2) :-
     read_name(player1, Player1Name),
     asserta(player_name(player1, Player1Name)),
@@ -84,7 +91,6 @@ process_play_choice(2) :-
         write('Invalid choice. Please try again.\n'),
         display_play_menu
     ).
-
 process_play_choice(3) :-
     write('Select the type of game:\n'),
     write('1. Greedy vs. Greedy\n'),
@@ -129,11 +135,12 @@ process_play_choice(3) :-
         write('Invalid choice. Please try again.\n'),
         display_play_menu
     ).
-
 process_play_choice(_) :-
     write('Invalid play mode. Please try again.\n'),
     display_play_menu.
 
+% display_helm_menu
+% displays the help menu
 display_help_menu :-
     clear_console,
     title,
@@ -152,6 +159,8 @@ display_help_menu :-
     write('\nPress any key to go back to main menu. Enjoy the game!!\n'),
     read(_).
 
+% play
+% main function, where the game starts
 play :-
     initial_state(GameState), !,
     game_cycle(GameState),

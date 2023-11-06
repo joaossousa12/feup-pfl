@@ -139,10 +139,11 @@ behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :-
     ColRes is ColF + 1,
     RowRes is RowF + 1.
 behind_pos(ColI-RowI-ColF-RowF, ColRes-RowRes) :- 
-    % idk other cases where the previous doesn't work?
     ColRes is ColF,
     RowRes is RowF. 
-    % probably useless lol
+
+% resulting_piece(+Board, +Piece, +Position, -Res)
+% determines the piece that will result from a move
 resulting_piece(Board, Piece, Col-Row, Res) :-
     position(Board, Col-Row, Aux),
     Aux = '  ', Piece = ' 2',
