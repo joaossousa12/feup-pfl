@@ -118,7 +118,7 @@ process_play_choice(3) :-
             asserta(isGreedyBot(player2, 1)),
             asserta(player_name(player2, 'Greedy Bot'))
     ;
-        GameTypeChoice = 4 ->  %for tests
+        GameTypeChoice = 4 -> 
             retract(isGreedyBot(player1, 0)), 
             asserta(isGreedyBot(player1, 1)),
             asserta(player_name(player1, 'Greedy Bot')),
@@ -153,6 +153,6 @@ display_help_menu :-
     read(_).
 
 play :-
-    gamestate(GameState), !,
+    initial_state(GameState), !,
     game_cycle(GameState),
     clear_data.

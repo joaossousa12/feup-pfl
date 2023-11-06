@@ -1,5 +1,3 @@
-print_initial_board :- initial_board(X), print_board(X).
-
 % Define the initial state of the board as a matrix.
 initial_board([
     [' 2', ' 2', ' 2', ' 2', ' 2', ' 2', ' 2', ' 2'],
@@ -12,9 +10,10 @@ initial_board([
 ]).
 
 % Function to print the board.
-print_board(Board) :-
+display_game(GameState) :-
     nl,
     print_board_separator,
+    [Board, _, _] = GameState,
     print_rows(Board, 1).
 
 print_rows([Row | Rest], RowNumber) :-
