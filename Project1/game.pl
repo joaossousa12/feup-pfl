@@ -96,7 +96,7 @@ base_reached(GameState) :-
     nth1(7, Board, LastRow), % and vice-versa
     ( list_contains(FirstRow, ' I') ; list_contains(LastRow, ' 1') ).
 
-% game_over(GameState)
+% game_over(+GameState)
 % checks if game is over
 game_over(GameState) :-
     [Board, Player, _] = GameState,
