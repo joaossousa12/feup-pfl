@@ -9,14 +9,26 @@ data Inst =
   deriving Show
 type Code = [Inst]
 
--- createEmptyStack :: Stack
-createEmptyStack = undefined -- TODO, Uncomment the function signature after defining Stack
+data StackData = Value Integer | Boolean Bool | Expression String
+    deriving Show
 
--- stack2Str :: Stack -> String
-stack2Str = undefined -- TODO, Uncomment all the other function type declarations as you implement them
+type Stack = [StackData]
 
--- createEmptyState :: State
-createEmptyState = undefined -- TODO, Uncomment the function signature after defining State
+type State = [(String, StackData)]
+
+createEmptyStack :: Stack
+createEmptyStack = [] 
+
+stack2Str :: Stack -> String
+stack2Str = concat . reverse . map stackDataToStr . reverse -- lido da direita para a esquerda
+  where
+    stackDataToStr :: StackData -> String
+    stackDataToStr (Value i) = show i -- pass integer to string 
+    stackDataToStr (Boolean b) = if b then "True" else "False"
+    stackDataToStr (Expression s) = s
+
+createEmptyState :: State
+createEmptyState = []
 
 -- state2Str :: State -> String
 state2Str = undefined -- TODO
