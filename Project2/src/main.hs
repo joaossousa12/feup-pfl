@@ -1,3 +1,6 @@
+import Data.List (intercalate, sortBy)
+import Data.Ord (comparing)
+
 -- PFL 2023/24 - Haskell practical assignment quickstart
 
 -- Part 1
@@ -30,11 +33,21 @@ stack2Str = concat . reverse . map stackDataToStr . reverse -- lido da direita p
 createEmptyState :: State
 createEmptyState = []
 
--- state2Str :: State -> String
-state2Str = undefined -- TODO
+state2Str :: State -> String
+state2Str state = intercalate "," $ map pairToStr $ sortBy (comparing fst) state
+  where
+    pairToStr :: (String, StackData) -> String
+    pairToStr (var, val) = var ++ "=" ++ stackDataToStr val
+
+    stackDataToStr :: StackData -> String
+    stackDataToStr (Value i) = show i -- pass integer to string 
+    stackDataToStr (Boolean b) = if b then "True" else "False"
+    stackDataToStr (Expression s) = s
 
 -- run :: (Code, Stack, State) -> (Code, Stack, State)
 run = undefined -- TODO
+-- run ([], stack, state) = ([], stack, state)
+
 
 -- To help you test your assembler
 testAssembler :: Code -> (String, String)
