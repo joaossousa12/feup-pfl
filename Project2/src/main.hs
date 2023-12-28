@@ -22,27 +22,31 @@ type State = [(String, StackData)]
 createEmptyStack :: Stack
 createEmptyStack = [] 
 
+-- converts StackData to its string representation.
+stackDataToStr :: StackData -> String
+stackDataToStr (Value i) = show i -- pass integer to string 
+stackDataToStr (Boolean b) = if b then "True" else "False"
+stackDataToStr (Expression s) = s
+
+-- stack2Str works by:
+-- 1. Reversing the stack (necessary to maintain the original order in the resulting string)
+-- 2. Mapping each element of the stack to its string representation using stackDataToStr
+-- 3. Concatenating the resulting list of strings with commas
 stack2Str :: Stack -> String
 stack2Str = intercalate "," . reverse . map stackDataToStr . reverse
-  where
-    stackDataToStr :: StackData -> String
-    stackDataToStr (Value i) = show i -- pass integer to string 
-    stackDataToStr (Boolean b) = if b then "True" else "False"
-    stackDataToStr (Expression s) = s
 
 createEmptyState :: State
 createEmptyState = []
 
+-- state2Str works by:
+-- 1. Sorting the state by variable names (sorted order for better readability)
+-- 2. Mapping each key-value pair to its string representation using pairToStr
+-- 3. Concatenating the resulting list of strings with commas
 state2Str :: State -> String
 state2Str state = intercalate "," $ map pairToStr $ sortBy (comparing fst) state
   where
     pairToStr :: (String, StackData) -> String
     pairToStr (var, val) = var ++ "=" ++ stackDataToStr val
-
-    stackDataToStr :: StackData -> String
-    stackDataToStr (Value i) = show i -- pass integer to string 
-    stackDataToStr (Boolean b) = if b then "True" else "False"
-    stackDataToStr (Expression s) = s
 
 run :: (Code, Stack, State) -> (Code, Stack, State)
 run ([], stack, state) = ([], stack, state)
@@ -88,10 +92,12 @@ run ((head:tail), stack, state) = case head of
       (Boolean x : Boolean y : rest) -> run (tail, Boolean (x && y) : rest, state)
       _ -> error "Runtime error: And operation requires two boolean values!"
 
+-- Helper function to perform arithmetic operations on the stack
 performArithmeticOp :: (Integer -> Integer -> Integer) -> Stack -> Stack
 performArithmeticOp op (Value x : Value y : tail) = Value (op x y) : tail
 performArithmeticOp _ _ = error "Runtime error: Invalid stack for arithmetic operation!"
 
+-- Helper function to update the state with a new value for a variable
 updateState :: String -> StackData -> State -> State
 updateState var val [] = [(var, val)]
 updateState var val ((v, _):tail) | v == var = (var, val) : tail
