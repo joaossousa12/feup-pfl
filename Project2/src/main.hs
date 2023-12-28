@@ -124,7 +124,6 @@ testAssembler code = (stack2Str stack, state2Str state)
 
 -- Part 2
 
--- TODO: Define the types Aexp, Bexp, Stm and Program
 data Aexp
   = ANum Integer
   | AVar String
@@ -144,10 +143,10 @@ data Bexp
 
 -- Statements
 data Stm
-  = Assign String Aexp    -- Assignment
-  | Seq [Stm]             -- Sequence of statements
-  | If Bexp Stm Stm       -- If-then-else
-  | While Bexp Stm        -- While loop
+  = Assign String Aexp
+  | Seq [Stm]
+  | If Bexp Stm Stm
+  | While Bexp Stm
   deriving (Show)
 
 -- Program (list of statements)
@@ -161,12 +160,12 @@ compA (ASub e1 e2) = compA e1 ++ compA e2 ++ [Sub]
 compA (AMul e1 e2) = compA e1 ++ compA e2 ++ [Mult]
 
 compB :: Bexp -> Code
+compB (BLe e1 e2) = compA e2 ++ compA e1 ++ [Le]
+compB (BEq e1 e2) = compA e2 ++ compA e1 ++ [Equ]
+compB (BAnd b1 b2) = compB b1 ++ compB b2 ++ [And]
+compB (BNot b) = compB b ++ [Neg]
 compB BTrue = [Tru]
 compB BFalse = [Fals]
-compB (BNot b) = compB b ++ [Neg]
-compB (BAnd b1 b2) = compB b1 ++ compB b2 ++ [And]
-compB (BLe e1 e2) = compA e1 ++ compA e2 ++ [Le]
-compB (BEq e1 e2) = compA e1 ++ compA e2 ++ [Equ]
 
 compile :: Program -> Code
 compile [] = []
@@ -196,22 +195,32 @@ testParser programCode = (stack2Str stack, state2Str state)
 
 main :: IO ()
 main = do
-  putStrLn "Part 2:"
-  
-  -- Test cases for compA
-  -- putStrLn $ show (testAssembler (compA (ANum 42)) == ("42", [])) -- True
-  -- putStrLn $ show (testAssembler (compA (AAdd (ANum 2) (ANum 3))) == ("5", [])) -- True
-  -- putStrLn $ show (testAssembler (compA (AMul (ANum 4) (ANum 5))) == ("20", [])) -- True
+  putStrLn "Part 2 tests (up to b):"
 
-  -- -- Test cases for compB
-  -- putStrLn $ show (testAssembler (compB BTrue) == ("True", [])) -- True
-  -- putStrLn $ show (testAssembler (compB (BNot BFalse)) == ("True", [])) -- True
-  -- putStrLn $ show (testAssembler (compB (BAnd BTrue BFalse)) == ("False", [])) -- True
+  -- arithmetic operations
+  putStrLn $ show (testAssembler (compA (AAdd (ANum 2) (ANum 3))) == ("5", [])) -- True
+  putStrLn $ show (testAssembler (compA (ASub (ANum 8) (ANum 5))) == ("-3", [])) -- True
+  putStrLn $ show (testAssembler (compA (AMul (ANum 4) (ANum 5))) == ("20", [])) -- True
+
+  -- boolean expressions
+  putStrLn $ show (testAssembler (compB BTrue) == ("True", [])) -- True
+  putStrLn $ show (testAssembler (compB BFalse) == ("False", [])) -- True
+  putStrLn $ show (testAssembler (compB (BNot BTrue)) == ("False", [])) -- True
+  putStrLn $ show (testAssembler (compB (BAnd BTrue BFalse)) == ("False", [])) -- True
   putStrLn $ show (testAssembler (compB (BLe (ANum 3) (ANum 5))) == ("True", [])) -- True
+  putStrLn $ show (testAssembler (compB (BEq (ANum 5) (ANum 5))) == ("True", [])) -- True
 
-  -- Test cases for compile
-  -- putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42)]) == ("", "x=42")) -- True
-  -- putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42), Assign "y" (AVar "x")]) == ("", "x=42,y=42")) -- True
-  -- putStrLn $ show (testAssembler (compile [If BTrue (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "x=1")) -- True
-  -- putStrLn $ show (testAssembler (compile [Assign "i" (ANum 1), While (BLe (AVar "i") (ANum 3)) (Assign "i" (AAdd (AVar "i") (ANum 1)))]) == ("", "i=4")) -- True
+  -- variable assignments
+  putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42)]) == ("", "x=42")) -- True
+  putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42), Assign "y" (AVar "x")]) == ("", "x=42,y=42")) -- True
 
+  -- conditionals
+  putStrLn $ show (testAssembler (compile [If BTrue (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "x=1")) -- True
+  putStrLn $ show (testAssembler (compile [If BFalse (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "y=2")) -- True
+
+  -- loops
+  putStrLn $ show (testAssembler (compile [Assign "i" (ANum 1), While (BLe (AVar "i") (ANum 3)) (Assign "i" (AAdd (AVar "i") (ANum 1)))]) == ("", "i=4")) -- True
+  putStrLn $ show (testAssembler (compile [While BFalse (Assign "x" (ANum 1))]) == ("", "")) -- True
+
+  -- combining operations
+  putStrLn $ show (testAssembler (compile [Assign "x" (ANum 5), Assign "y" (ANum 3), If (BLe (AVar "x") (AVar "y")) (Assign "z" (ANum 1)) (Assign "z" (ANum 2))]) == ("", "x=5,y=3,z=2")) -- True
