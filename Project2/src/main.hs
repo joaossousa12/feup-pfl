@@ -125,17 +125,59 @@ testAssembler code = (stack2Str stack, state2Str state)
 -- Part 2
 
 -- TODO: Define the types Aexp, Bexp, Stm and Program
+data Aexp
+  = ANum Integer
+  | AVar String
+  | AAdd Aexp Aexp
+  | ASub Aexp Aexp
+  | AMul Aexp Aexp
+  deriving (Show)
 
--- compA :: Aexp -> Code
-compA = undefined -- TODO
+data Bexp
+  = BTrue
+  | BFalse
+  | BNot Bexp
+  | BAnd Bexp Bexp
+  | BLe Aexp Aexp
+  | BEq Aexp Aexp
+  deriving (Show)
 
--- compB :: Bexp -> Code
-compB = undefined -- TODO
+-- Statements
+data Stm
+  = Assign String Aexp    -- Assignment
+  | Seq [Stm]             -- Sequence of statements
+  | If Bexp Stm Stm       -- If-then-else
+  | While Bexp Stm        -- While loop
+  deriving (Show)
 
--- compile :: Program -> Code
-compile = undefined -- TODO
+-- Program (list of statements)
+type Program = [Stm]
 
--- parse :: String -> Program
+compA :: Aexp -> Code
+compA (ANum n) = [Push n]
+compA (AVar x) = [Fetch x]
+compA (AAdd e1 e2) = compA e1 ++ compA e2 ++ [Add]
+compA (ASub e1 e2) = compA e1 ++ compA e2 ++ [Sub]
+compA (AMul e1 e2) = compA e1 ++ compA e2 ++ [Mult]
+
+compB :: Bexp -> Code
+compB BTrue = [Tru]
+compB BFalse = [Fals]
+compB (BNot b) = compB b ++ [Neg]
+compB (BAnd b1 b2) = compB b1 ++ compB b2 ++ [And]
+compB (BLe e1 e2) = compA e1 ++ compA e2 ++ [Le]
+compB (BEq e1 e2) = compA e1 ++ compA e2 ++ [Equ]
+
+compile :: Program -> Code
+compile [] = []
+compile (stmt : rest) = case stmt of
+  Assign x aexp -> compA aexp ++ [Store x] ++ compile rest
+  Seq stmts -> concatMap compile [stmts] ++ compile rest
+  If bexp stm1 stm2 -> compB bexp ++ [Branch (compile [stm1]) (compile [stm2])] ++ compile rest
+  While bexp stm -> [Loop (compB bexp) (compile [stm])] ++ compile rest
+
+
+parse :: String -> Program
 parse = undefined -- TODO
 
 -- To help you test your parser
@@ -151,3 +193,25 @@ testParser programCode = (stack2Str stack, state2Str state)
 -- testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")
 -- testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6")
 -- testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")
+
+main :: IO ()
+main = do
+  putStrLn "Part 2:"
+  
+  -- Test cases for compA
+  -- putStrLn $ show (testAssembler (compA (ANum 42)) == ("42", [])) -- True
+  -- putStrLn $ show (testAssembler (compA (AAdd (ANum 2) (ANum 3))) == ("5", [])) -- True
+  -- putStrLn $ show (testAssembler (compA (AMul (ANum 4) (ANum 5))) == ("20", [])) -- True
+
+  -- -- Test cases for compB
+  -- putStrLn $ show (testAssembler (compB BTrue) == ("True", [])) -- True
+  -- putStrLn $ show (testAssembler (compB (BNot BFalse)) == ("True", [])) -- True
+  -- putStrLn $ show (testAssembler (compB (BAnd BTrue BFalse)) == ("False", [])) -- True
+  putStrLn $ show (testAssembler (compB (BLe (ANum 3) (ANum 5))) == ("True", [])) -- True
+
+  -- Test cases for compile
+  -- putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42)]) == ("", "x=42")) -- True
+  -- putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42), Assign "y" (AVar "x")]) == ("", "x=42,y=42")) -- True
+  -- putStrLn $ show (testAssembler (compile [If BTrue (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "x=1")) -- True
+  -- putStrLn $ show (testAssembler (compile [Assign "i" (ANum 1), While (BLe (AVar "i") (ANum 3)) (Assign "i" (AAdd (AVar "i") (ANum 1)))]) == ("", "i=4")) -- True
+
