@@ -1,5 +1,17 @@
+module Main where
+
 import Data.List (intercalate, sortBy)
 import Data.Ord (comparing)
+
+-- for parser
+import System.IO
+import Control.Monad
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Expr
+import Text.ParserCombinators.Parsec.Language
+import qualified Text.ParserCombinators.Parsec.Token as Token
+
+
 
 -- PFL 2023/24 - Haskell practical assignment quickstart
 
@@ -35,20 +47,20 @@ stackDataToStr (Expression s) = s
 stack2Str :: Stack -> String
 stack2Str = intercalate "," . reverse . map stackDataToStr . reverse
 
-createEmptyState :: State
+createEmptyState :: Main.State
 createEmptyState = []
 
 -- state2Str works by:
 -- 1. Sorting the state by variable names (sorted order for better readability)
 -- 2. Mapping each key-value pair to its string representation using pairToStr
 -- 3. Concatenating the resulting list of strings with commas
-state2Str :: State -> String
+state2Str :: Main.State -> String
 state2Str state = intercalate "," $ map pairToStr $ sortBy (comparing fst) state
   where
     pairToStr :: (String, StackData) -> String
     pairToStr (var, val) = var ++ "=" ++ stackDataToStr val
 
-run :: (Code, Stack, State) -> (Code, Stack, State)
+run :: (Code, Stack, Main.State) -> (Code, Stack, Main.State)
 run ([], stack, state) = ([], stack, state)
 run ((head:tail), stack, state) = case head of
   Push n -> run (tail, Value n : stack, state)
@@ -64,7 +76,7 @@ run ((head:tail), stack, state) = case head of
         Nothing -> error "Runtime error: Variable not found!"
   Store x -> 
     case stack of
-      (v:tailStore) -> run (tail, tailStore, updateState x v state)
+      (v:tailStore) -> run (tail, tailStore, Main.updateState x v state)
       [] -> error "Runtime error: Stack underflow on Store!"
   Neg -> 
     case stack of
@@ -98,29 +110,15 @@ performArithmeticOp op (Value x : Value y : tail) = Value (op x y) : tail
 performArithmeticOp _ _ = error "Runtime error: Invalid stack for arithmetic operation!"
 
 -- Helper function to update the state with a new value for a variable
-updateState :: String -> StackData -> State -> State
+updateState :: String -> StackData -> Main.State -> Main.State
 updateState var val [] = [(var, val)]
 updateState var val ((v, _):tail) | v == var = (var, val) : tail
-updateState var val (pair:tail) = pair : updateState var val tail
+updateState var val (pair:tail) = pair : Main.updateState var val tail
 
 -- To help you test your assembler
 testAssembler :: Code -> (String, String)
 testAssembler code = (stack2Str stack, state2Str state)
   where (_,stack,state) = run(code, createEmptyStack, createEmptyState)
-
--- Testing:
--- main :: IO()
--- main = do
---   putStrLn "Part 1:"
---   print (testAssembler [Push 10, Push 4, Push 3, Sub, Mult] == ("-10","")) -- works
---   print (testAssembler [Fals,Push 3,Tru,Store "var",Store "a", Store "someVar"] == ("","a=3,someVar=False,var=True")) -- works
---   print (testAssembler [Fals,Store "var",Fetch "var"] == ("False","var=False")) -- works
---   print (testAssembler [Push (-20),Tru,Fals] == ("False,True,-20","")) -- works
---   print (testAssembler [Push (-20),Tru,Tru,Neg] == ("False,True,-20","")) -- works
---   print (testAssembler [Push (-20),Tru,Tru,Neg,Equ] == ("False,-20","")) -- works
---   print (testAssembler [Push (-20),Push (-21), Le] == ("True","")) -- works
---   print (testAssembler [Push 5,Store "x",Push 1,Fetch "x",Sub,Store "x"] == ("","x=4")) -- works
---   print (testAssembler [Push 10,Store "i",Push 1,Store "fact",Loop [Push 1,Fetch "i",Equ,Neg] [Fetch "i",Fetch "fact",Mult,Store "fact",Push 1,Fetch "i",Sub,Store "i"]] == ("","fact=3628800,i=1")) -- works
 
 -- Part 2
 
@@ -175,56 +173,107 @@ compile (stmt : rest) = case stmt of
   If bexp stm1 stm2 -> compB bexp ++ [Branch (compile [stm1]) (compile [stm2])] ++ compile rest
   While bexp stm -> [Loop (compB bexp) (compile [stm])] ++ compile rest
 
+-- parser stuff
+
+-- not gonna use this for now
+-- lexer :: String -> [String]
+-- lexer [] = []
+-- lexer s@(c:cs)
+--   | c == ' ' = lexer (dropWhile (== ' ') cs)
+--   | c == ';' = [";"] ++ lexer cs
+--   | otherwise = let (word, rest) = span (\x -> x /= ' ' && x /= ';') s
+--                 in word : lexer rest
+
+
+aexpParser :: Parser Aexp
+aexpParser = try (ANum <$> integer) <|> try (AVar <$> identifier) <|> parens aexpParser
+  where
+    parens = between (char '(') (char ')')
+    integer = read <$> many1 digit
+    identifier = many1 letter
+
+bexpParser :: Parser Bexp
+bexpParser = undefined
+
+-- Define a parser for statements (Stm)
+stmParser :: Parser Stm
+stmParser = undefined
+
+programParser :: Parser Program
+programParser = undefined
+
 parse :: String -> Program
-parse = undefined -- TODO
-
-
-
+parse input = case Text.ParserCombinators.Parsec.parse programParser "" input of
+  Left err -> error $ "Parser error: " ++ show err
+  Right program -> program
 
 
 -- To help you test your parser
 testParser :: String -> (String, String)
 testParser programCode = (stack2Str stack, state2Str state)
-  where (_,stack,state) = run(compile (parse programCode), createEmptyStack, createEmptyState)
+  where (_, stack, state) = run(compile (Main.parse programCode), createEmptyStack, createEmptyState)
 
--- Examples:
--- testParser "x := 5; x := x - 1;" == ("","x=4")
--- testParser "if (not True and 2 <= 5 = 3 == 4) then x :=1 else y := 2" == ("","y=2")
--- testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;)" == ("","x=1")
--- testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")
--- testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")
--- testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6")
--- testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")
+testAexpParser :: String -> Either ParseError Aexp
+testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" input
+
 
 -- to test compile and its auxilliary functions
--- main :: IO ()
--- main = do
---   putStrLn "Part 2 tests (up to b):"
+main :: IO ()
+main = do
+  putStrLn "Part 1 tests:"
+  print (testAssembler [Push 10, Push 4, Push 3, Sub, Mult] == ("-10","")) -- works
+  print (testAssembler [Fals,Push 3,Tru,Store "var",Store "a", Store "someVar"] == ("","a=3,someVar=False,var=True")) -- works
+  print (testAssembler [Fals,Store "var",Fetch "var"] == ("False","var=False")) -- works
+  print (testAssembler [Push (-20),Tru,Fals] == ("False,True,-20","")) -- works
+  print (testAssembler [Push (-20),Tru,Tru,Neg] == ("False,True,-20","")) -- works
+  print (testAssembler [Push (-20),Tru,Tru,Neg,Equ] == ("False,-20","")) -- works
+  print (testAssembler [Push (-20),Push (-21), Le] == ("True","")) -- works
+  print (testAssembler [Push 5,Store "x",Push 1,Fetch "x",Sub,Store "x"] == ("","x=4")) -- works
+  print (testAssembler [Push 10, Store "i", Push 1, Store "fact", Loop [Push 1, Fetch "i", Equ, Neg] [Fetch "i", Fetch "fact", Mult, Store "fact", Push 1, Fetch "i",Sub,Store "i"]] == ("","fact=3628800,i=1")) -- works
 
---   -- arithmetic operations
---   putStrLn $ show (testAssembler (compA (AAdd (ANum 2) (ANum 3))) == ("5", [])) -- True
---   putStrLn $ show (testAssembler (compA (ASub (ANum 8) (ANum 5))) == ("-3", [])) -- True
---   putStrLn $ show (testAssembler (compA (AMul (ANum 4) (ANum 5))) == ("20", [])) -- True
+  putStrLn "Compile tests:"
+  -- arithmetic operations
+  putStrLn $ show (testAssembler (compA (AAdd (ANum 2) (ANum 3))) == ("5", [])) -- True
+  putStrLn $ show (testAssembler (compA (ASub (ANum 8) (ANum 5))) == ("-3", [])) -- True
+  putStrLn $ show (testAssembler (compA (AMul (ANum 4) (ANum 5))) == ("20", [])) -- True
 
---   -- boolean expressions
---   putStrLn $ show (testAssembler (compB BTrue) == ("True", [])) -- True
---   putStrLn $ show (testAssembler (compB BFalse) == ("False", [])) -- True
---   putStrLn $ show (testAssembler (compB (BNot BTrue)) == ("False", [])) -- True
---   putStrLn $ show (testAssembler (compB (BAnd BTrue BFalse)) == ("False", [])) -- True
---   putStrLn $ show (testAssembler (compB (BLe (ANum 3) (ANum 5))) == ("True", [])) -- True
---   putStrLn $ show (testAssembler (compB (BEq (ANum 5) (ANum 5))) == ("True", [])) -- True
+  -- boolean expressions
+  putStrLn $ show (testAssembler (compB BTrue) == ("True", [])) -- True
+  putStrLn $ show (testAssembler (compB BFalse) == ("False", [])) -- True
+  putStrLn $ show (testAssembler (compB (BNot BTrue)) == ("False", [])) -- True
+  putStrLn $ show (testAssembler (compB (BAnd BTrue BFalse)) == ("False", [])) -- True
+  putStrLn $ show (testAssembler (compB (BLe (ANum 3) (ANum 5))) == ("True", [])) -- True
+  putStrLn $ show (testAssembler (compB (BEq (ANum 5) (ANum 5))) == ("True", [])) -- True
 
---   -- variable assignments
---   putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42)]) == ("", "x=42")) -- True
---   putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42), Assign "y" (AVar "x")]) == ("", "x=42,y=42")) -- True
+  -- variable assignments
+  putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42)]) == ("", "x=42")) -- True
+  putStrLn $ show (testAssembler (compile [Assign "x" (ANum 42), Assign "y" (AVar "x")]) == ("", "x=42,y=42")) -- True
 
---   -- conditionals
---   putStrLn $ show (testAssembler (compile [If BTrue (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "x=1")) -- True
---   putStrLn $ show (testAssembler (compile [If BFalse (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "y=2")) -- True
+  -- conditionals
+  putStrLn $ show (testAssembler (compile [If BTrue (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "x=1")) -- True
+  putStrLn $ show (testAssembler (compile [If BFalse (Assign "x" (ANum 1)) (Assign "y" (ANum 2))]) == ("", "y=2")) -- True
 
---   -- loops
---   putStrLn $ show (testAssembler (compile [Assign "i" (ANum 1), While (BLe (AVar "i") (ANum 3)) (Assign "i" (AAdd (AVar "i") (ANum 1)))]) == ("", "i=4")) -- True
---   putStrLn $ show (testAssembler (compile [While BFalse (Assign "x" (ANum 1))]) == ("", "")) -- True
+  -- loops
+  putStrLn $ show (testAssembler (compile [Assign "i" (ANum 1), While (BLe (AVar "i") (ANum 3)) (Assign "i" (AAdd (AVar "i") (ANum 1)))]) == ("", "i=4")) -- True
+  putStrLn $ show (testAssembler (compile [While BFalse (Assign "x" (ANum 1))]) == ("", "")) -- True
 
---   -- combining operations
---   putStrLn $ show (testAssembler (compile [Assign "x" (ANum 5), Assign "y" (ANum 3), If (BLe (AVar "x") (AVar "y")) (Assign "z" (ANum 1)) (Assign "z" (ANum 2))]) == ("", "x=5,y=3,z=2")) -- True
+  -- combining operations
+  putStrLn $ show (testAssembler (compile [Assign "x" (ANum 5), Assign "y" (ANum 3), If (BLe (AVar "x") (AVar "y")) (Assign "z" (ANum 1)) (Assign "z" (ANum 2))]) == ("", "x=5,y=3,z=2")) -- True
+
+  -- lexer tests
+  putStrLn "Testing lexer:"
+  -- print (lexer "x := 5; x := x - 1;")
+
+  -- parser tests
+  putStrLn "Testing parser:"
+  putStrLn $ show (testAexpParser "42") -- Should parse as ANum 42
+  putStrLn $ show (testAexpParser "x + 5") -- Should parse as AAdd (AVar "x") (ANum 5)
+  putStrLn $ show (testAexpParser "(x * 5) + y") -- Should parse as AAdd (AMul (AVar "x") (ANum 5)) (AVar "y")
+
+  -- putStrLn $ show (testParser "x := 5; x := x - 1;" == ("","x=4")) -- True
+  -- putStrLn $ show (testParser "if (not True and 2 <= 5 = 3 == 4) then x :=1 else y := 2" == ("","y=2")) -- True
+  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;)" == ("","x=1")) -- True
+  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")) -- True
+  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")) -- True
+  -- putStrLn $ show (testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6")) -- True
+  -- putStrLn $ show (testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")) -- True
