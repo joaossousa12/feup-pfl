@@ -4,6 +4,7 @@ import Data.List (intercalate, sortBy)
 import Data.Ord (comparing)
 
 -- for parser
+import Data.Char (isSpace)
 import System.IO
 import Control.Monad
 import Text.ParserCombinators.Parsec
@@ -184,10 +185,18 @@ compile (stmt : rest) = case stmt of
 --   | otherwise = let (word, rest) = span (\x -> x /= ' ' && x /= ';') s
 --                 in word : lexer rest
 
-
+-- notes for later: 
+--                  - subtractions might be inverted 😅
+--                  - adding a negative number (i.e. 8 + (-4)) doesn't work
 aexpParser :: Parser Aexp
-aexpParser = try (ANum <$> integer) <|> try (AVar <$> identifier) <|> parens aexpParser
+aexpParser = buildExpressionParser operators term <?> "expression"
   where
+    operators = [ [Infix (AMul <$ spaces <* char '*' <* spaces) AssocLeft]
+                , [Infix (AAdd <$ spaces <* char '+' <* spaces) AssocLeft
+                  , Infix (ASub <$ spaces <* char '-' <* spaces) AssocLeft] ]
+    term = try (ANum <$> (char '-' *> integer <|> integer))
+       <|> try (AVar <$> identifier)
+       <|> parens aexpParser
     parens = between (char '(') (char ')')
     integer = read <$> many1 digit
     identifier = many1 letter
@@ -214,8 +223,7 @@ testParser programCode = (stack2Str stack, state2Str state)
   where (_, stack, state) = run(compile (Main.parse programCode), createEmptyStack, createEmptyState)
 
 testAexpParser :: String -> Either ParseError Aexp
-testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" input
-
+testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" (filter (not . isSpace) input)
 
 -- to test compile and its auxilliary functions
 main :: IO ()
@@ -261,15 +269,20 @@ main = do
   putStrLn $ show (testAssembler (compile [Assign "x" (ANum 5), Assign "y" (ANum 3), If (BLe (AVar "x") (AVar "y")) (Assign "z" (ANum 1)) (Assign "z" (ANum 2))]) == ("", "x=5,y=3,z=2")) -- True
 
   -- lexer tests
-  putStrLn "Testing lexer:"
+  -- putStrLn "Testing lexer:"
   -- print (lexer "x := 5; x := x - 1;")
 
-  -- parser tests
-  putStrLn "Testing parser:"
-  putStrLn $ show (testAexpParser "42") -- Should parse as ANum 42
-  putStrLn $ show (testAexpParser "x + 5") -- Should parse as AAdd (AVar "x") (ANum 5)
-  putStrLn $ show (testAexpParser "(x * 5) + y") -- Should parse as AAdd (AMul (AVar "x") (ANum 5)) (AVar "y")
+  -- arithmetic parser tests
+  putStrLn "Testing arithmetic parser: (check expected results in comments)"
+  putStrLn $ show (testAexpParser "42")                -- Should parse as ANum 42
+  putStrLn $ show (testAexpParser "x + 5")             -- Should parse as AAdd (AVar "x") (ANum 5)
+  putStrLn $ show (testAexpParser "(x * 5) + y")       -- Should parse as AAdd (AMul (AVar "x") (ANum 5)) (AVar "y")
+  putStrLn $ show (testAexpParser "(8 - 5)")           -- Should parse as ASub (AVar "x") (ANum 5)
+  putStrLn $ show (testAexpParser "x * (3 + y) - 4")   -- Should parse as ASub (AMul (AVar "x") (AAdd (ANum 3) (AVar "y"))) (ANum 4)
+  putStrLn $ show (testAexpParser "8 + (-4)")          -- Should parse as AAdd (ANum 8) (ANum (-4)) - doesn't work yet
 
+  -- general parser tests
+  -- putStrLn "Testing parser:"
   -- putStrLn $ show (testParser "x := 5; x := x - 1;" == ("","x=4")) -- True
   -- putStrLn $ show (testParser "if (not True and 2 <= 5 = 3 == 4) then x :=1 else y := 2" == ("","y=2")) -- True
   -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;)" == ("","x=1")) -- True
