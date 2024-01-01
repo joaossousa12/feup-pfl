@@ -185,6 +185,10 @@ compile (stmt : rest) = case stmt of
 --   | otherwise = let (word, rest) = span (\x -> x /= ' ' && x /= ';') s
 --                 in word : lexer rest
 
+-- helper for parenthesis
+parens :: Parser a -> Parser a
+parens p = between (char '(' <* spaces) (char ')' <* spaces) p
+
 -- notes for later (on aexpParser): 
 --                  - subtractions might be inverted 😅
 --                  - adding a negative number (i.e. 8 + (-4)) doesn't work
@@ -197,24 +201,24 @@ aexpParser = buildExpressionParser operators term <?> "expression"
     term = try (ANum <$> (char '-' *> integer <|> integer))
        <|> try (AVar <$> identifier)
        <|> parens aexpParser
-    parens = between (char '(') (char ')')
+    -- parens = between (char '(') (char ')') -- I think the other function defined outside works but just in case leaving this here with a comment
     integer = read <$> many1 digit
     identifier = many1 letter
 
 
+-- I think this is fine now :D
 bexpParser :: Parser Bexp
 bexpParser = buildExpressionParser operators term <?> "boolean expression"
   where
-    operators = [ Prefix (try (BNot <$ spaces <* string "not" <* spaces))
-                , Infix (BAnd <$ spaces <* string "and" <* spaces) AssocLeft
-                , Infix (BLe <$ spaces <* string "<=" <* spaces) AssocLeft
-                , Infix (BEq <$ spaces <* string "==" <* spaces) AssocLeft ]
-    term = try (BTrue <$ string "True")
-       <|> try (BFalse <$ string "False")
-       <|> try (parens bexpParser)
-       <|> try (BLe <$> (aexpParser <* spaces <* string "<=" <* spaces) <*> aexpParser)
-       <|> try (BEq <$> (aexpParser <* spaces <* string "==" <* spaces) <*> aexpParser)
-    parens = between (char '(' <* spaces) (char ')' <* spaces)
+    operators = [ [Prefix (BNot <$ spaces <* string "not" <* spaces)]
+                , [Infix (BAnd <$ spaces <* string "and" <* spaces) AssocLeft]
+                ]
+    term = try (parens bexpParser)
+      <|> try (BTrue <$ string "true")
+      <|> try (BFalse <$ string "false")
+      <|> relExpParser
+    relExpParser = try (BLe <$> aexpParser <* spaces <* string "<=" <* spaces <*> aexpParser)
+      <|> (BEq <$> aexpParser <* spaces <* string "==" <* spaces <*> aexpParser)
 
 
 -- Define a parser for statements (Stm)
@@ -237,6 +241,9 @@ testParser programCode = (stack2Str stack, state2Str state)
 
 testAexpParser :: String -> Either ParseError Aexp
 testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" (filter (not . isSpace) input)
+
+testBexpParser :: String -> Either ParseError Bexp
+testBexpParser input = Text.ParserCombinators.Parsec.parse bexpParser "" (filter (not . isSpace) input)
 
 -- to test compile and its auxilliary functions
 main :: IO ()
@@ -286,13 +293,28 @@ main = do
   -- print (lexer "x := 5; x := x - 1;")
 
   -- arithmetic parser tests
-  putStrLn "Testing arithmetic parser: (check expected results in comments)"
-  putStrLn $ show (testAexpParser "42")                -- Should parse as ANum 42
-  putStrLn $ show (testAexpParser "x + 5")             -- Should parse as AAdd (AVar "x") (ANum 5)
-  putStrLn $ show (testAexpParser "(x * 5) + y")       -- Should parse as AAdd (AMul (AVar "x") (ANum 5)) (AVar "y")
-  putStrLn $ show (testAexpParser "(8 - 5)")           -- Should parse as ASub (AVar "x") (ANum 5)
-  putStrLn $ show (testAexpParser "x * (3 + y) - 4")   -- Should parse as ASub (AMul (AVar "x") (AAdd (ANum 3) (AVar "y"))) (ANum 4)
-  putStrLn $ show (testAexpParser "8 + (-4)")          -- Should parse as AAdd (ANum 8) (ANum (-4)) - doesn't work yet
+  putStrLn "Testing arithmetic parser:"
+  putStrLn $ show (testAexpParser "42")                            -- ANum 42
+  putStrLn $ show (testAexpParser "x + 5")                         -- AAdd (AVar "x") (ANum 5)
+  putStrLn $ show (testAexpParser "(x * 5) + y")                   -- AAdd (AMul (AVar "x") (ANum 5)) (AVar "y")
+  putStrLn $ show (testAexpParser "(8 - 5)")                       -- ASub (AVar "x") (ANum 5)
+  putStrLn $ show (testAexpParser "x * (3 + y) - 4")               -- ASub (AMul (AVar "x") (AAdd (ANum 3) (AVar "y"))) (ANum 4)
+  putStrLn $ show (testAexpParser "8 + (-4)")                      -- AAdd (ANum 8) (ANum (-4)) - doesn't work yet *******************
+
+  -- boolean expression parser tests
+  putStrLn "Testing boolean expression parser:"
+  putStrLn $ show (testBexpParser "true;")                         -- BTrue
+  putStrLn $ show (testBexpParser "false;")                        -- BFalse
+  putStrLn $ show (testBexpParser "true and false;")               -- BAnd (BTrue BFalse)
+  putStrLn $ show (testBexpParser "(true and false);")             -- BAnd (BTrue BFalse)
+  putStrLn $ show (testBexpParser "(true and false) and true;")    -- BAnd (BAnd BTrue BFalse) BTrue
+  putStrLn $ show (testBexpParser "not false;")                    -- BNot BFalse
+  putStrLn $ show (testBexpParser "not (true and false);")         -- BNot (BAnd BTrue BFalse)
+  putStrLn $ show (testBexpParser "not true and false;")           -- BNot (BAnd BTrue BFalse)
+  putStrLn $ show (testBexpParser "1 <= 2")                        -- BLe (ANum 1) (ANum 2)
+  putStrLn $ show (testBexpParser "(1 <= 2);")                     -- BLe (ANum 1) (ANum 2)
+  putStrLn $ show (testBexpParser "(x <= 5) and not (y <= 5);")    -- BAnd (BLe (AVar "x") (ANum 5)) (BNot (BLe (AVar "y") (ANum 5)))
+  putStrLn $ show (testBexpParser "2 <= 5 and 3 == 4;")            -- BAnd (BLe (ANum 2) (ANum 5)) (BEq (ANum 3) (ANum 4))
 
   -- general parser tests
   -- putStrLn "Testing parser:"
