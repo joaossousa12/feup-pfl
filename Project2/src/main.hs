@@ -185,7 +185,7 @@ compile (stmt : rest) = case stmt of
 --   | otherwise = let (word, rest) = span (\x -> x /= ' ' && x /= ';') s
 --                 in word : lexer rest
 
--- notes for later: 
+-- notes for later (on aexpParser): 
 --                  - subtractions might be inverted 😅
 --                  - adding a negative number (i.e. 8 + (-4)) doesn't work
 aexpParser :: Parser Aexp
@@ -201,8 +201,21 @@ aexpParser = buildExpressionParser operators term <?> "expression"
     integer = read <$> many1 digit
     identifier = many1 letter
 
+
 bexpParser :: Parser Bexp
-bexpParser = undefined
+bexpParser = buildExpressionParser operators term <?> "boolean expression"
+  where
+    operators = [ Prefix (try (BNot <$ spaces <* string "not" <* spaces))
+                , Infix (BAnd <$ spaces <* string "and" <* spaces) AssocLeft
+                , Infix (BLe <$ spaces <* string "<=" <* spaces) AssocLeft
+                , Infix (BEq <$ spaces <* string "==" <* spaces) AssocLeft ]
+    term = try (BTrue <$ string "True")
+       <|> try (BFalse <$ string "False")
+       <|> try (parens bexpParser)
+       <|> try (BLe <$> (aexpParser <* spaces <* string "<=" <* spaces) <*> aexpParser)
+       <|> try (BEq <$> (aexpParser <* spaces <* string "==" <* spaces) <*> aexpParser)
+    parens = between (char '(' <* spaces) (char ')' <* spaces)
+
 
 -- Define a parser for statements (Stm)
 stmParser :: Parser Stm
