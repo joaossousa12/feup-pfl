@@ -11,7 +11,7 @@ import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
-
+import Data.Foldable (asum)
 
 
 -- PFL 2023/24 - Haskell practical assignment quickstart
@@ -196,17 +196,19 @@ aexpParser :: Parser Aexp
 aexpParser = buildExpressionParser operators term <?> "expression"
   where
     operators = [ [Infix (AMul <$ spaces <* char '*' <* spaces) AssocLeft]
-                , [Infix (AAdd <$ spaces <* char '+' <* spaces) AssocLeft
-                  , Infix (ASub <$ spaces <* char '-' <* spaces) AssocLeft] ]
+                , [Infix (flipASub <$ spaces <* char '-' <* spaces) AssocLeft
+                  , Infix (AAdd <$ spaces <* char '+' <* spaces) AssocLeft] ]
     term = try (ANum <$> (char '-' *> integer <|> integer))
        <|> try (AVar <$> identifier)
        <|> parens aexpParser
-    -- parens = between (char '(') (char ')') -- I think the other function defined outside works but just in case leaving this here with a comment
     integer = read <$> many1 digit
     identifier = many1 letter
 
+flipASub :: Aexp -> Aexp -> Aexp
+flipASub = flip ASub
 
--- I think this is fine now :D
+
+-- missing boolean equality (just "=") X(
 bexpParser :: Parser Bexp
 bexpParser = buildExpressionParser operators term <?> "boolean expression"
   where
@@ -221,29 +223,88 @@ bexpParser = buildExpressionParser operators term <?> "boolean expression"
       <|> (BEq <$> aexpParser <* spaces <* string "==" <* spaces <*> aexpParser)
 
 
--- Define a parser for statements (Stm)
 stmParser :: Parser Stm
-stmParser = undefined
+stmParser = assignParser <|> ifParser <|> whileParser
+  where
+    assignParser :: Parser Stm
+    assignParser = do
+      variable <- notFollowedBy (choice $ map string reservedKeywords) *> many1 letter <* spaces <* string ":=" <* spaces
+      expression <- aexpParser
+      return (Assign variable expression)
 
-programParser :: Parser Program
-programParser = undefined
+    ifParser :: Parser Stm
+    ifParser = do
+      string "if"
+      optional spaces
+      condition <- try bexpParser
+      optional spaces
+      string "then"
+      optional spaces
+      trueBranch <- stmParser <* optional (char ';') -- Allow for optional semicolon before else
+      optional spaces
+      string "else"
+      optional spaces
+      falseBranch <- stmParser
+      return (If condition trueBranch falseBranch)
 
-parse :: String -> Program
-parse input = case Text.ParserCombinators.Parsec.parse programParser "" input of
-  Left err -> error $ "Parser error: " ++ show err
-  Right program -> program
+    whileParser :: Parser Stm
+    whileParser = do
+      string "while" *> spaces
+      condition <- parens bexpParser <* spaces
+      string "do" *> spaces
+      body <- parens (stmParser <* char ';') <* char ';'
+      return (While condition body)
+
+    reservedKeywords = ["if", "then", "else", "while", "do", "not", "true", "false"]
+
+
+format_input :: String -> [String]
+format_input "" = []
+format_input input =
+  let (token, rest) = breakDelimiter input
+  in token : case rest of
+    [] -> []
+    xs -> format_input xs
+
+breakDelimiter :: String -> (String, String)
+breakDelimiter "" = ("", "")
+breakDelimiter (';' : 'e' : 'l' : 's' : 'e' : xs) =
+  let (token, rest) = breakDelimiter xs
+  in (";else" ++ token, rest)
+breakDelimiter (';' : xs) = ("", xs)
+breakDelimiter (x : xs) = (x : token, rest)
+  where
+    (token, rest) = breakDelimiter xs
+
+parseProgram :: String -> Program
+-- parseProgram input = map parseStatement ["x:=5;", "y:=69420;"]
+parseProgram input = map parseStatement (format_input (filter (not . isSpace) input))
+
+parseStatement :: String -> Stm
+parseStatement input = case parse stmParser "" input of
+  Left err -> error $ "Parse error: " ++ show err
+  Right statement -> statement
+
+-- main :: IO ()
+-- main = do
+--   let input = "x := 5;"
+--   let result = parseProgram input
+--   print result
 
 
 -- To help you test your parser
 testParser :: String -> (String, String)
 testParser programCode = (stack2Str stack, state2Str state)
-  where (_, stack, state) = run(compile (Main.parse programCode), createEmptyStack, createEmptyState)
+  where (_, stack, state) = run(compile (Main.parseProgram (filter (not . isSpace) programCode)), createEmptyStack, createEmptyState)
 
 testAexpParser :: String -> Either ParseError Aexp
 testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" (filter (not . isSpace) input)
 
 testBexpParser :: String -> Either ParseError Bexp
 testBexpParser input = Text.ParserCombinators.Parsec.parse bexpParser "" (filter (not . isSpace) input)
+
+testStmParser :: String -> Either ParseError Stm
+testStmParser input = Text.ParserCombinators.Parsec.parse stmParser "" (filter (not . isSpace) input)
 
 -- to test compile and its auxilliary functions
 main :: IO ()
@@ -293,7 +354,7 @@ main = do
   -- print (lexer "x := 5; x := x - 1;")
 
   -- arithmetic parser tests
-  putStrLn "Testing arithmetic parser:"
+  putStrLn "\n\nTesting arithmetic parser:\n"
   putStrLn $ show (testAexpParser "42")                            -- ANum 42
   putStrLn $ show (testAexpParser "x + 5")                         -- AAdd (AVar "x") (ANum 5)
   putStrLn $ show (testAexpParser "(x * 5) + y")                   -- AAdd (AMul (AVar "x") (ANum 5)) (AVar "y")
@@ -302,7 +363,7 @@ main = do
   putStrLn $ show (testAexpParser "8 + (-4)")                      -- AAdd (ANum 8) (ANum (-4)) - doesn't work yet *******************
 
   -- boolean expression parser tests
-  putStrLn "Testing boolean expression parser:"
+  putStrLn "\n\nTesting boolean expression parser:\n"
   putStrLn $ show (testBexpParser "true;")                         -- BTrue
   putStrLn $ show (testBexpParser "false;")                        -- BFalse
   putStrLn $ show (testBexpParser "true and false;")               -- BAnd (BTrue BFalse)
@@ -316,12 +377,27 @@ main = do
   putStrLn $ show (testBexpParser "(x <= 5) and not (y <= 5);")    -- BAnd (BLe (AVar "x") (ANum 5)) (BNot (BLe (AVar "y") (ANum 5)))
   putStrLn $ show (testBexpParser "2 <= 5 and 3 == 4;")            -- BAnd (BLe (ANum 2) (ANum 5)) (BEq (ANum 3) (ANum 4))
 
+  -- statement parser tests
+  putStrLn "\n\nTesting statement parser:\n"
+  putStrLn $ show (testStmParser "x := 42;")                                 -- Assign "x" (ANum 42)
+  putStrLn $ show (testStmParser "x := 42;")                                 -- Assign "x" (ANum 42)
+  putStrLn $ show (testStmParser "y := x + 5;")                              -- Assign "y" (AAdd (AVar "x") (ANum 5))
+  putStrLn $ show (testStmParser "z := (x * 5) + y;")                        -- Assign "z" (AAdd (AMul (AVar "x") (ANum 5)) (AVar "y"))
+  putStrLn $ show (testStmParser "if true then x := 1; else x := 33")        -- Right (If BTrue (Assign "x" (ANum 1)) (Assign "x" (ANum 33)))
+  putStrLn $ show (testStmParser "if x <= 43 then x := 1; else x := 33;")     -- Right (If (BLe (AVar "x") (ANum 43)) (Assign "x" (ANum 1)) (Assign "x" (ANum 33)))
+  putStrLn $ show (testStmParser "while (not(i == 1)) do (i := 1;);")        -- 
+  -- putStrLn $ show (testStmParser "while (not(i == 1)) do (i := 1; i := 2);") -- whiles com mais de uma linha n funcionam
+
+
   -- general parser tests
-  -- putStrLn "Testing parser:"
-  -- putStrLn $ show (testParser "x := 5; x := x - 1;" == ("","x=4")) -- True
-  -- putStrLn $ show (testParser "if (not True and 2 <= 5 = 3 == 4) then x :=1 else y := 2" == ("","y=2")) -- True
-  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;)" == ("","x=1")) -- True
-  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")) -- True
-  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")) -- True
-  -- putStrLn $ show (testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6")) -- True
-  -- putStrLn $ show (testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")) -- True
+  putStrLn "\n\nTesting parser:\n"
+  putStrLn $ show (testParser "x := 4;" == ("","x=4")) -- works
+  putStrLn $ show (testParser "x := 2; y := 5; z := (x * 5) + y;" == ("","x=2,y=5,z=15")) -- works
+  putStrLn $ show (testParser "x := 3; if (x == 2) then x := 1 else x := 33;" == ("","x=33")) -- works
+  putStrLn $ show (testParser "if not (2 <= 5) then x := 1 else y := 2" == ("","y=2")) -- works
+  -- putStrLn $ show (testParser "if (not True and 2 <= 5 = 3 == 3) then x :=1 else y := 2" == ("","x=1")) -- doesn't work
+  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else (x := 33; x := x+1;)" == ("","x=1")) -- doesn't work - ifs e whiles com mais de um statement não funcionam
+  -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")) -- doesn't work
+  putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")) -- True
+  putStrLn $ show (testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6") ) -- True
+  putStrLn $ show (testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")) -- doesn't work - como nos ifs, whiles com mais de um statement não funcionam
