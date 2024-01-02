@@ -151,8 +151,7 @@ data Stm
   | While Bexp Stm        -- represents a while loop statement
   deriving (Show)
 
-type Program = [Stm]  -- represents a program as a list of statements
-
+type Program = [Stm]      -- represents a program as a list of statements
 
 
 -- COMPILER

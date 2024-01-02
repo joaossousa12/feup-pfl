@@ -22,6 +22,18 @@
 
 <h3 align="center">Parte 2</h3>
 
+>A 2.ª parte do trabalho prático envolve a implementação de um compilador para uma simples linguagem de programação imperativa. Esta linguagem inclui expressões aritméticas, expressões booleanas, atribuições de variáveis, instruções condicionais (`if`-`then`-`else`) e ciclos `while`.<br>
+>A compilação do programa passa inicialmente pelo *parsing* do código fonte. Para isto serve a função `parse`, que por sua vez coordena as funções `aexpParse`, para expressões aritméticas, `bexpParse` para expressões booleanas e `stmParse` para instruções próprias da linguagem, como atribuições de variáveis (`:=`) ou então estruturas `while`, `if`-`then`-`else`, etc.<br>
+>O *parsing* gera código com que o compilador consegue trabalhar, através das seguintes estruturas:
+> - `Aexp` - para representar expressões aritméticas (`ANum`, `AMul`, etc)
+> - `Bexp` - para representar expressões booleanas (`BTrue`, `BNot`, etc)
+> - `Stm` -  para representar *statements* (`Assign`, `If`, etc)
+> - `Program` - lista de *statements* (`Stm`)
+><br>
+>
+>Uma vez compilado o programa, consegui-mos executálo através da função `run`, referida na 1.ª parte do projeto.<br>
+>Esta implementação faz uso de combinadores de analisadores e funções de ordem superior para a construção de analisadores.
+
 <h2 align="center">Conclusões</h2>
 
 > Este projeto proporcionou-nos uma compreensão profunda e detalhada sobre a programação em níveis mais baixos, especialmente no que toca à manipulação direta da stack e do armazenamento. Ao longo do desenvolvimento, deparamo-nos com a complexidade de traduzir conceitos e operações de alto nível em instruções de máquina de baixo nível.
