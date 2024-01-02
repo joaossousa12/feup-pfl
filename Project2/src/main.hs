@@ -1,9 +1,8 @@
+-- PFL 2023/24 - Haskell practical assignment quickstart
 module Main where
 
 import Data.List (intercalate, sortBy)
 import Data.Ord (comparing)
-
--- for parser
 import Data.Char (isSpace)
 import System.IO
 import Control.Monad
@@ -14,9 +13,8 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 import Data.Foldable (asum)
 
 
--- PFL 2023/24 - Haskell practical assignment quickstart
-
 -- Part 1
+
 
 -- Do not modify our definition of Inst and Code
 data Inst =
@@ -120,41 +118,46 @@ updateState var val [] = [(var, val)]
 updateState var val ((v, _):tail) | v == var = (var, val) : tail
 updateState var val (pair:tail) = pair : Main.updateState var val tail
 
--- To help you test your assembler
-testAssembler :: Code -> (String, String)
-testAssembler code = (stack2Str stack, state2Str state)
-  where (_,stack,state) = run(code, createEmptyStack, createEmptyState)
 
 -- Part 2
 
+
+-- TYPES
+
+-- arithmetic expressions
 data Aexp
-  = ANum Integer
-  | AVar String
-  | AAdd Aexp Aexp
-  | ASub Aexp Aexp
-  | AMul Aexp Aexp
+  = ANum Integer          -- represents a numeric constant
+  | AVar String           -- represents a variable reference
+  | AAdd Aexp Aexp        -- represents an addition expression
+  | ASub Aexp Aexp        -- represents a subtraction expression
+  | AMul Aexp Aexp        -- represents a multiplication expression
   deriving (Show)
 
+-- boolean expressions
 data Bexp
-  = BTrue
-  | BFalse
-  | BNot Bexp
-  | BAnd Bexp Bexp
-  | BLe Aexp Aexp
-  | BEq Aexp Aexp
+  = BTrue                 -- represents a boolean True
+  | BFalse                -- represents a boolean False
+  | BNot Bexp             -- represents a logical NOT operation
+  | BAnd Bexp Bexp        -- represents a logical AND operation
+  | BLe Aexp Aexp         -- represents a less than or equal to comparison
+  | BEq Aexp Aexp         -- represents an equality comparison (boolean or arithmetic because "=" is missing)
   deriving (Show)
 
--- Statements
+-- statements
 data Stm
-  = Assign String Aexp
-  | Seq [Stm]
-  | If Bexp Stm Stm
-  | While Bexp Stm
+  = Assign String Aexp    -- represents a variable assignment statement
+  | Seq [Stm]             -- represents a sequence of statements
+  | If Bexp Stm Stm       -- represents a conditional statement
+  | While Bexp Stm        -- represents a while loop statement
   deriving (Show)
 
--- Program (list of statements)
-type Program = [Stm]
+type Program = [Stm]  -- represents a program as a list of statements
 
+
+
+-- COMPILER
+
+-- compA function compiles arithmetic expressions into code
 compA :: Aexp -> Code
 compA (ANum n) = [Push n]
 compA (AVar x) = [Fetch x]
@@ -162,6 +165,7 @@ compA (AAdd e1 e2) = compA e1 ++ compA e2 ++ [Add]
 compA (ASub e1 e2) = compA e1 ++ compA e2 ++ [Sub]
 compA (AMul e1 e2) = compA e1 ++ compA e2 ++ [Mult]
 
+-- compB function compiles boolean expressions into code
 compB :: Bexp -> Code
 compB (BLe e1 e2) = compA e2 ++ compA e1 ++ [Le]
 compB (BEq e1 e2) = compA e2 ++ compA e1 ++ [Equ]
@@ -170,6 +174,7 @@ compB (BNot b) = compB b ++ [Neg]
 compB BTrue = [Tru]
 compB BFalse = [Fals]
 
+-- compile function translates a program into a sequence of instructions
 compile :: Program -> Code
 compile [] = []
 compile (stmt : rest) = case stmt of
@@ -178,24 +183,36 @@ compile (stmt : rest) = case stmt of
   If bexp stm1 stm2 -> compB bexp ++ [Branch (compile [stm1]) (compile [stm2])] ++ compile rest
   While bexp stm -> [Loop (compB bexp) (compile [stm])] ++ compile rest
 
--- parser stuff
+-- PARSER
 
--- not gonna use this for now
--- lexer :: String -> [String]
--- lexer [] = []
--- lexer s@(c:cs)
---   | c == ' ' = lexer (dropWhile (== ' ') cs)
---   | c == ';' = [";"] ++ lexer cs
---   | otherwise = let (word, rest) = span (\x -> x /= ' ' && x /= ';') s
---                 in word : lexer rest
-
--- helper for parenthesis
+-- handle parenthesis
 parens :: Parser a -> Parser a
 parens p = between (char '(' <* spaces) (char ')' <* spaces) p
 
--- notes for later (on aexpParser): 
---                  - subtractions might be inverted 😅
---                  - adding a negative number (i.e. 8 + (-4)) doesn't work
+-- format_input function breaks input into tokens, separated by semicolons
+format_input :: String -> [String]
+format_input "" = []
+format_input input =
+  let (token, rest) = breakDelimiter input
+  in token : case rest of
+    [] -> []
+    xs -> format_input xs
+
+-- breakDelimiter function breaks input at semicolons
+breakDelimiter :: String -> (String, String)
+breakDelimiter "" = ("", "")
+breakDelimiter (';' : 'e' : 'l' : 's' : 'e' : xs) =
+  let (token, rest) = breakDelimiter xs
+  in (";else" ++ token, rest)
+breakDelimiter (';' : xs) = ("", xs)
+breakDelimiter (x : xs) = (x : token, rest)
+  where
+    (token, rest) = breakDelimiter xs
+
+-- aexpParser function parses arithmetic expressions.
+-- It uses buildExpressionParser to handle operator precedence and associativity.
+-- It recognizes numeric constants, variable references, and supports addition,
+-- subtraction, and multiplication operations. It also correctly handles parentheses.
 aexpParser :: Parser Aexp
 aexpParser = buildExpressionParser operators term <?> "expression"
   where
@@ -208,11 +225,13 @@ aexpParser = buildExpressionParser operators term <?> "expression"
     integer = read <$> many1 digit
     identifier = many1 letter
 
-flipASub :: Aexp -> Aexp -> Aexp
-flipASub = flip ASub
+    flipASub :: Aexp -> Aexp -> Aexp
+    flipASub = flip ASub
 
-
--- missing boolean equality (just "=") X(
+-- bexpParser function parses boolean expressions.
+-- It recognizes boolean constants (True and False), logical NOT, and AND operations.
+-- It uses buildExpressionParser to handle operator precedence and associativity.
+-- It also parses relational expressions for less than or equal to and equality checks (missing "="!)
 bexpParser :: Parser Bexp
 bexpParser = buildExpressionParser operators term <?> "boolean expression"
   where
@@ -226,7 +245,10 @@ bexpParser = buildExpressionParser operators term <?> "boolean expression"
     relExpParser = try (BLe <$> aexpParser <* spaces <* string "<=" <* spaces <*> aexpParser)
       <|> (BEq <$> aexpParser <* spaces <* string "==" <* spaces <*> aexpParser)
 
-
+-- stmParser function parses statements.
+-- It combines parsers for variable assignment, conditional statements (if-else),
+-- and while loops. It ensures correct parsing of statements with proper syntax,
+-- including handling variable assignments, if conditions, and loop structures.
 stmParser :: Parser Stm
 stmParser = assignParser <|> ifParser <|> whileParser
   where
@@ -244,7 +266,7 @@ stmParser = assignParser <|> ifParser <|> whileParser
       optional spaces
       string "then"
       optional spaces
-      trueBranch <- stmParser <* optional (char ';') -- Allow for optional semicolon before else
+      trueBranch <- stmParser <* optional (char ';')
       optional spaces
       string "else"
       optional spaces
@@ -261,59 +283,18 @@ stmParser = assignParser <|> ifParser <|> whileParser
 
     reservedKeywords = ["if", "then", "else", "while", "do", "not", "true", "false"]
 
-
-format_input :: String -> [String]
-format_input "" = []
-format_input input =
-  let (token, rest) = breakDelimiter input
-  in token : case rest of
-    [] -> []
-    xs -> format_input xs
-
-breakDelimiter :: String -> (String, String)
-breakDelimiter "" = ("", "")
-breakDelimiter (';' : 'e' : 'l' : 's' : 'e' : xs) =
-  let (token, rest) = breakDelimiter xs
-  in (";else" ++ token, rest)
-breakDelimiter (';' : xs) = ("", xs)
-breakDelimiter (x : xs) = (x : token, rest)
-  where
-    (token, rest) = breakDelimiter xs
-
-parseProgram :: String -> Program
--- parseProgram input = map parseStatement ["x:=5;", "y:=69420;"]
-parseProgram input = map parseStatement (format_input (filter (not . isSpace) input))
-
 parseStatement :: String -> Stm
-parseStatement input = case parse stmParser "" input of
+parseStatement input = case Text.ParserCombinators.Parsec.parse stmParser "" input of
   Left err -> error $ "Parse error: " ++ show err
   Right statement -> statement
 
--- main :: IO ()
--- main = do
---   let input = "x := 5;"
---   let result = parseProgram input
---   print result
+parse :: String -> Program
+parse input = map parseStatement (format_input (filter (not . isSpace) input))
 
-
--- To help you test your parser
-testParser :: String -> (String, String)
-testParser programCode = (stack2Str stack, state2Str state)
-  where (_, stack, state) = run(compile (Main.parseProgram (filter (not . isSpace) programCode)), createEmptyStack, createEmptyState)
-
-testAexpParser :: String -> Either ParseError Aexp
-testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" (filter (not . isSpace) input)
-
-testBexpParser :: String -> Either ParseError Bexp
-testBexpParser input = Text.ParserCombinators.Parsec.parse bexpParser "" (filter (not . isSpace) input)
-
-testStmParser :: String -> Either ParseError Stm
-testStmParser input = Text.ParserCombinators.Parsec.parse stmParser "" (filter (not . isSpace) input)
-
--- to test compile and its auxilliary functions
+-- to run tests
 main :: IO ()
 main = do
-  putStrLn "Part 1 tests:"
+  putStrLn "\n\nPart 1 tests:\n"
   print (testAssembler [Push 10, Push 4, Push 3, Sub, Mult] == ("-10","")) -- works
   print (testAssembler [Fals,Push 3,Tru,Store "var",Store "a", Store "someVar"] == ("","a=3,someVar=False,var=True")) -- works
   print (testAssembler [Fals,Store "var",Fetch "var"] == ("False","var=False")) -- works
@@ -324,7 +305,7 @@ main = do
   print (testAssembler [Push 5,Store "x",Push 1,Fetch "x",Sub,Store "x"] == ("","x=4")) -- works
   print (testAssembler [Push 10, Store "i", Push 1, Store "fact", Loop [Push 1, Fetch "i", Equ, Neg] [Fetch "i", Fetch "fact", Mult, Store "fact", Push 1, Fetch "i",Sub,Store "i"]] == ("","fact=3628800,i=1")) -- works
 
-  putStrLn "Compile tests:"
+  putStrLn "\n\nCompile tests:\n"
   -- arithmetic operations
   putStrLn $ show (testAssembler (compA (AAdd (ANum 2) (ANum 3))) == ("5", [])) -- True
   putStrLn $ show (testAssembler (compA (ASub (ANum 8) (ANum 5))) == ("-3", [])) -- True
@@ -352,10 +333,6 @@ main = do
 
   -- combining operations
   putStrLn $ show (testAssembler (compile [Assign "x" (ANum 5), Assign "y" (ANum 3), If (BLe (AVar "x") (AVar "y")) (Assign "z" (ANum 1)) (Assign "z" (ANum 2))]) == ("", "x=5,y=3,z=2")) -- True
-
-  -- lexer tests
-  -- putStrLn "Testing lexer:"
-  -- print (lexer "x := 5; x := x - 1;")
 
   -- arithmetic parser tests
   putStrLn "\n\nTesting arithmetic parser:\n"
@@ -387,11 +364,9 @@ main = do
   putStrLn $ show (testStmParser "x := 42;")                                 -- Assign "x" (ANum 42)
   putStrLn $ show (testStmParser "y := x + 5;")                              -- Assign "y" (AAdd (AVar "x") (ANum 5))
   putStrLn $ show (testStmParser "z := (x * 5) + y;")                        -- Assign "z" (AAdd (AMul (AVar "x") (ANum 5)) (AVar "y"))
-  putStrLn $ show (testStmParser "if true then x := 1; else x := 33")        -- Right (If BTrue (Assign "x" (ANum 1)) (Assign "x" (ANum 33)))
-  putStrLn $ show (testStmParser "if x <= 43 then x := 1; else x := 33;")     -- Right (If (BLe (AVar "x") (ANum 43)) (Assign "x" (ANum 1)) (Assign "x" (ANum 33)))
-  putStrLn $ show (testStmParser "while (not(i == 1)) do (i := 1;);")        -- 
-  -- putStrLn $ show (testStmParser "while (not(i == 1)) do (i := 1; i := 2);") -- whiles com mais de uma linha n funcionam
-
+  putStrLn $ show (testStmParser "if true then x := 1; else x := 33")        -- (If BTrue (Assign "x" (ANum 1)) (Assign "x" (ANum 33)))
+  putStrLn $ show (testStmParser "if x <= 43 then x := 1; else x := 33;")    -- (If (BLe (AVar "x") (ANum 43)) (Assign "x" (ANum 1)) (Assign "x" (ANum 33)))
+  putStrLn $ show (testStmParser "while (not(i == 1)) do (i := 1;);")        -- (While (BNot (BEq (AVar "i") (ANum 1))) (Assign "i" (ANum 1)))
 
   -- general parser tests
   putStrLn "\n\nTesting parser:\n"
@@ -405,3 +380,22 @@ main = do
   putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")) -- True
   putStrLn $ show (testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6") ) -- True
   -- putStrLn $ show (testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")) -- doesn't work - como nos ifs, whiles com mais de um statement não funcionam
+
+-- To help you test your parser
+testParser :: String -> (String, String)
+testParser programCode = (stack2Str stack, state2Str state)
+  where (_, stack, state) = run(compile (Main.parse (filter (not . isSpace) programCode)), createEmptyStack, createEmptyState)
+
+testAexpParser :: String -> Either ParseError Aexp
+testAexpParser input = Text.ParserCombinators.Parsec.parse aexpParser "" (filter (not . isSpace) input)
+
+testBexpParser :: String -> Either ParseError Bexp
+testBexpParser input = Text.ParserCombinators.Parsec.parse bexpParser "" (filter (not . isSpace) input)
+
+testStmParser :: String -> Either ParseError Stm
+testStmParser input = Text.ParserCombinators.Parsec.parse stmParser "" (filter (not . isSpace) input)
+
+-- To help you test your assembler
+testAssembler :: Code -> (String, String)
+testAssembler code = (stack2Str stack, state2Str state)
+  where (_,stack,state) = run(code, createEmptyStack, createEmptyState)
