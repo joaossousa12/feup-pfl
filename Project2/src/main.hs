@@ -12,13 +12,17 @@ data Inst =
   deriving Show
 type Code = [Inst]
 
+-- definition of StackData type to represent various types of data in the stack
 data StackData = Value Integer | Boolean Bool | Expression String
     deriving (Show, Eq)
 
+-- type alias for Stack, which is a list of StackData
 type Stack = [StackData]
 
+-- type alias for State, representing storage as a list of key-value pairs
 type State = [(String, StackData)]
 
+-- creates empty stack
 createEmptyStack :: Stack
 createEmptyStack = [] 
 
@@ -35,6 +39,7 @@ stackDataToStr (Expression s) = s
 stack2Str :: Stack -> String
 stack2Str = intercalate "," . reverse . map stackDataToStr . reverse
 
+-- creates empty state
 createEmptyState :: State
 createEmptyState = []
 
@@ -49,47 +54,47 @@ state2Str state = intercalate "," $ map pairToStr $ sortBy (comparing fst) state
     pairToStr (var, val) = var ++ "=" ++ stackDataToStr val
 
 run :: (Code, Stack, State) -> (Code, Stack, State)
-run ([], stack, state) = ([], stack, state)
+run ([], stack, state) = ([], stack, state) -- base case with empty code list
 run ((head:tail), stack, state) = case head of
-  Push n -> run (tail, Value n : stack, state)
-  Add -> run (tail, performArithmeticOp (+) stack, state)
-  Sub -> run (tail, performArithmeticOp (-) stack, state)
-  Mult -> run (tail, performArithmeticOp (*) stack, state)
-  Tru -> run (tail, Boolean True : stack, state)
-  Fals -> run (tail, Boolean False : stack, state)
+  Push n -> run (tail, Value n : stack, state) -- pushes an integer value onto the stack
+  Add -> run (tail, performArithmeticOp (+) stack, state) -- adds the top two integer values on the stack
+  Sub -> run (tail, performArithmeticOp (-) stack, state) -- subtracts the top integer value from the second top value on the stack
+  Mult -> run (tail, performArithmeticOp (*) stack, state) -- multiplies the top two integer values on the stack
+  Tru -> run (tail, Boolean True : stack, state) -- pushes a boolean True onto the stack
+  Fals -> run (tail, Boolean False : stack, state) -- pushes a boolean False onto the stack
   Fetch x -> 
-    let val = lookup x state in
+    let val = lookup x state in -- fetches the value associated with variable x from the state
       case val of
-        Just v -> run (tail, v : stack, state)
+        Just v -> run (tail, v : stack, state) -- pushes the fetched value onto the stack
         Nothing -> error "Runtime error: Variable not found!"
   Store x -> 
     case stack of
-      (v:tailStore) -> run (tail, tailStore, updateState x v state)
+      (v:tailStore) -> run (tail, tailStore, updateState x v state) -- pops the top value from the stack and stores it in the state with variable x
       [] -> error "Runtime error: Stack underflow on Store!"
   Neg -> 
     case stack of
-      (Boolean b : rest) -> run (tail, Boolean (not b) : rest, state)
+      (Boolean b : rest) -> run (tail, Boolean (not b) : rest, state) -- negates the boolean value on top of the stack
       _ -> error "Runtime error: Negation applied to non-boolean value!" 
   Equ -> 
     case stack of
-      (x : y : rest) -> run (tail, Boolean (x == y) : rest, state)
+      (x : y : rest) -> run (tail, Boolean (x == y) : rest, state) -- checks equality of the top two stack values and pushes the result
       _ -> error "Runtime error: Insufficient elements on stack for Equ!"
   Le -> 
     case stack of
-      (Value x : Value y : rest) -> run (tail, Boolean (x <= y) : rest, state)
+      (Value x : Value y : rest) -> run (tail, Boolean (x <= y) : rest, state) -- checks if the second top stack value is less or equal to the top value
       _ -> error "Runtime error: Invalid elements on stack for Le or insufficient elements!"
-  Noop -> run (tail, stack, state)
+  Noop -> run (tail, stack, state) -- no operation simply continues with the next instruction.
   Branch c1 c2 -> 
     case stack of
-      (Boolean True : rest) -> run (c1 ++ tail, rest, state)
-      (Boolean False : rest) -> run (c2 ++ tail, rest, state)
-      _ -> error "Runtime error: Non-boolean value on stack for Branch!"
+      (Boolean True : rest) -> run (c1 ++ tail, rest, state) -- if top stack value is True, continue with c1 code sequence
+      (Boolean False : rest) -> run (c2 ++ tail, rest, state) -- if top stack value is False, continue with c2 code sequence
+      _ -> error "Runtime error: Non-boolean value on stack for Branch!" -- error if not boolean
   Loop c1 c2 -> 
-    let loopExp = c1 ++ [Branch (c2 ++ [Loop c1 c2]) [Noop]] in
-    run (loopExp ++ tail, stack, state)
+    let loopExp = c1 ++ [Branch (c2 ++ [Loop c1 c2]) [Noop]] in -- constructs a loop expression using Branch
+    run (loopExp ++ tail, stack, state) -- executes the loop expression
   And -> 
     case stack of
-      (Boolean x : Boolean y : rest) -> run (tail, Boolean (x && y) : rest, state)
+      (Boolean x : Boolean y : rest) -> run (tail, Boolean (x && y) : rest, state) -- performs logical AND on the top two boolean stack values
       _ -> error "Runtime error: And operation requires two boolean values!"
 
 -- Helper function to perform arithmetic operations on the stack
