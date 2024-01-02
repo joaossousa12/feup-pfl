@@ -134,7 +134,7 @@ game_cycle(GameState):-
         choose_move(GameState, Col11-Row11-Col21-Row21),
         move(GameState,  Col11-Row11-Col21-Row21, NewGameState),
         format('~w chose move: ColI:~w-RowI:~w-ColF:~w-RowF:~w\n', [PlayerName, Col11, Row11, Col21, Row21]),
-        sleep(2),
+        % sleep(2),
         first_element(NewGameState, NewBoard),
         clear_console,
         title,
