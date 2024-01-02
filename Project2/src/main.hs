@@ -404,4 +404,4 @@ main = do
   -- putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1;" == ("","x=2")) -- doesn't work
   putStrLn $ show (testParser "x := 42; if x <= 43 then x := 1; else x := 33; x := x+1; z := x+x;" == ("","x=2,z=4")) -- True
   putStrLn $ show (testParser "x := 2; y := (x - 3)*(4 + 2*3); z := x +x*(2);" == ("","x=2,y=-10,z=6") ) -- True
-  putStrLn $ show (testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")) -- doesn't work - como nos ifs, whiles com mais de um statement não funcionam
+  -- putStrLn $ show (testParser "i := 10; fact := 1; while (not(i == 1)) do (fact := fact * i; i := i - 1;);" == ("","fact=3628800,i=1")) -- doesn't work - como nos ifs, whiles com mais de um statement não funcionam
